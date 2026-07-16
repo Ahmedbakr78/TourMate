@@ -1,5 +1,6 @@
 import { Document, Types } from "mongoose";
 import { genderEnum, lostItemStatusEnum, otpTypesEnum, roleEnum, statusUserEnum, tripStatusEnum, verificationStatusEnum, voteValueEnum } from "../enums/user.enum.js";
+import { Request } from "express";
 
 
 interface IOtp {
@@ -125,7 +126,29 @@ interface IBlackListedTokens extends Document<Types.ObjectId> {
     expiresAt: Date
 }
 
+interface ITokenPayload {
+    _id: string;
+    role: roleEnum;
+    jti: string;
+    iat?: number;
+    exp?: number;
+}
+interface IRequest extends Request {
+    loggedInUser?: {
+        user: IUser;
+        tokenData: ITokenPayload;
+    };
+}
+interface IEmailArgument {
+    to: string,
+    cc?: string,
+    subject: string,
+    content: string,
+    attachments?: []
+}
+
 export type {
     IUser, IDriver, IGuide, IVehicle, IPlace, ITrip,
-    IReview, IVote, ILostItem, INotification, IBlackListedTokens
+    IReview, IVote, ILostItem, INotification, IBlackListedTokens,
+    ITokenPayload, IRequest, IEmailArgument
 }
