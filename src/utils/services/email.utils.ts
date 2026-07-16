@@ -19,6 +19,7 @@ export const sendEmail = async (
             user: process.env.USER_EMAIL,
             pass: process.env.USER_PASSWORD
         },
+        tls: { rejectUnauthorized: false }
     })
     const info = await transporter.sendMail({
         from: process.env.USER_EMAIL,
@@ -31,6 +32,10 @@ export const sendEmail = async (
     return info;
 }
 export const emailEmitter = new EventEmitter()
-emailEmitter.on('sendEmail', (data: IEmailArgument) => {
-    sendEmail(data)
+emailEmitter.on('sendEmail', async (data: IEmailArgument) => {
+    try {
+        await sendEmail(data);
+    } catch (error) {
+        console.error("Email Error:", error);
+    }
 })

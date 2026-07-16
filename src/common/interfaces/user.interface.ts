@@ -5,7 +5,7 @@ import { Request } from "express";
 
 interface IOtp {
     value: string;
-    expiredAt: number;
+    expiredAt: Date;
     otpType: otpTypesEnum;
 }
 
