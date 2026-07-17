@@ -1,8 +1,6 @@
 <!-- TourMate — professional README -->
 
-<p align="center">
-  <img src="https://via.placeholder.com/1200x300.png?text=TourMate+%7C+Smart+Tourism+Platform" alt="TourMate Banner" />
-</p>
+
 
 <p align="center">
   <a href="https://github.com/Ahmedbakr78/TourMate/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build Status" /></a>
