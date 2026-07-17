@@ -1,10 +1,6 @@
 <!-- TourMate — professional README -->
 
 <p align="center">
-  <img src="https://via.placeholder.com/1200x300.png?text=TourMate+%7C+Smart+Tourism+Platform" alt="TourMate Banner" />
-</p>
-
-<p align="center">
   <a href="https://github.com/Ahmedbakr78/TourMate/actions"><img src="https://img.shields.io/badge/build-passing-brightgreen" alt="Build Status" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License" /></a>
   <a href="https://www.mongodb.com/"><img src="https://img.shields.io/badge/stack-MEAN-green" alt="MEAN Stack" /></a>
@@ -236,3 +232,16 @@ workflow referenced from `.github/workflows/ci.yml`.
 ## License
 
 Distributed under the MIT License. See [`LICENSE`](LICENSE).
+
+---
+
+## Team Roles & Task Distribution
+
+This project is developed by a dedicated team of 5 engineers. Detailed module assignments and specific task breakdowns can be found in the [TEAM_TASKS_DISTRIBUTION.md](./TEAM_TASKS_DISTRIBUTION.md) file.
+
+### Team Members:
+1. **Ahmed Abo Bakr** - Team Manager, Leader, Fullstack & ALL UML/Architecture Docs
+2. **Jamal** - Database, Backend Core & API Docs
+3. **Bavly** - Frontend Lead, Tourist App & UI/UX Docs
+4. **Mai** - Frontend Providers, Admin Backend & QA Docs
+5. **Ramadan** - DevOps, Shared Frontend, QA & Documentation Lead
