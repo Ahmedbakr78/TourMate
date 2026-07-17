@@ -1,0 +1,95 @@
+import Driver from '../models/Driver.js';
+import User from '../models/User.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { ApiError, httpStatus } from '../utils/apiError.js';
+import { hashPassword } from '../utils/password.js';
+
+export const createDriver = asyncHandler(async (req, res) => {
+  const { name, email, password, phone, licenseNumber, nationalId } = req.body;
+
+  const existing = await User.findOne({ email });
+  if (existing) throw new ApiError(httpStatus.CONFLICT, 'Email already registered');
+
+  const user = await User.create({
+    name,
+    email,
+    password: await hashPassword(password || 'TourMate@123'),
+    phone,
+    role: 'driver',
+  });
+
+  const driver = await Driver.create({
+    user: user._id,
+    licenseNumber,
+    nationalId,
+  });
+
+  res.status(201).json({ status: 'success', data: { driver, user: user.toSafeJSON() } });
+});
+
+export const getDriver = asyncHandler(async (req, res) => {
+  const driver = await Driver.findById(req.params.id).populate('user', '-password');
+  if (!driver) throw new ApiError(httpStatus.NOT_FOUND, 'Driver not found');
+  res.json({ status: 'success', data: driver });
+});
+
+export const getAllDrivers = asyncHandler(async (req, res) => {
+  const { availability, page = 1, limit = 20 } = req.query;
+  const filter = {};
+  if (availability) filter.availability = availability;
+
+  const drivers = await Driver.find(filter)
+    .populate('user', '-password')
+    .skip((page - 1) * limit)
+    .limit(Number(limit));
+
+  res.json({ status: 'success', data: drivers, count: drivers.length });
+});
+
+export const updateDriver = asyncHandler(async (req, res) => {
+  const driver = await Driver.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  }).populate('user', '-password');
+  if (!driver) throw new ApiError(httpStatus.NOT_FOUND, 'Driver not found');
+  res.json({ status: 'success', data: driver });
+});
+
+export const deleteDriver = asyncHandler(async (req, res) => {
+  const driver = await Driver.findByIdAndDelete(req.params.id);
+  if (!driver) throw new ApiError(httpStatus.NOT_FOUND, 'Driver not found');
+  await User.findByIdAndDelete(driver.user);
+  res.json({ status: 'success', message: 'Driver deleted' });
+});
+
+export const searchDrivers = asyncHandler(async (req, res) => {
+  const { q, availability, lat, lng, radius = 5000 } = req.query;
+  const filter = {};
+  if (availability) filter.availability = availability;
+
+  let query = Driver.find(filter).populate('user', '-password');
+  if (q) query = query.where('licenseNumber').regex(new RegExp(q, 'i'));
+
+  if (lat && lng) {
+    query = query.where('currentLocation').near({
+      center: { type: 'Point', coordinates: [Number(lng), Number(lat)] },
+      maxDistance: Number(radius),
+    });
+  }
+  const drivers = await query.limit(50);
+  res.json({ status: 'success', data: drivers });
+});
+
+export const updateAvailability = asyncHandler(async (req, res) => {
+  const { availability } = req.body;
+  if (!['available', 'busy', 'offline'].includes(availability)) {
+    throw new ApiError(httpStatus.UNPROCESSABLE, 'Invalid availability value');
+  }
+  const driver = await Driver.findByIdAndUpdate(
+    req.params.id,
+    { availability, lastSeen: new Date() },
+    { new: true }
+  );
+  if (!driver) throw new ApiError(httpStatus.NOT_FOUND, 'Driver not found');
+  res.json({ status: 'success', data: driver });
+});
