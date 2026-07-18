@@ -29,6 +29,7 @@ const tripSchema = new Schema(
       enum: ['DRAFT', 'PENDING', 'CONFIRMED', 'ONGOING', 'COMPLETED', 'CANCELLED'],
       default: 'DRAFT',
     },
+    isShared: { type: Boolean, default: false },
     // Ahmed-only extensions (OSRM route + tracking context).
     startLocation: { type: locationSchema },
     endLocation: { type: locationSchema },

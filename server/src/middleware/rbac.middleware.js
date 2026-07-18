@@ -16,3 +16,5 @@ export function authorize(...roles) {
     next();
   };
 }
+
+export const rbac = authorize;

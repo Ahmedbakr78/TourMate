@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as guide from '../controllers/guide.controller.js';
-import { authenticate, authorize } from '../middleware/auth.middleware.js';
+import { authenticate } from '../middleware/auth.middleware.js';
 import { rbac } from '../middleware/rbac.middleware.js';
 import { upload } from '../middleware/upload.middleware.js';
 

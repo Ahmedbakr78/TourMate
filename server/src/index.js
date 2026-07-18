@@ -14,6 +14,8 @@ import vehicleRoutes from './routes/vehicle.routes.js';
 import externalRoutes from './routes/external.routes.js';
 import trackingRoutes from './routes/tracking.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import tripRoutes from './routes/trip.routes.js';
+import voteRoutes from './routes/vote.routes.js';
 
 import { errorHandler, notFound } from './middleware/error.middleware.js';
 
@@ -38,6 +40,8 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/trips', tripRoutes);
+app.use('/api/votes', voteRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
