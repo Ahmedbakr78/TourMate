@@ -12,7 +12,7 @@ class authService {
     private blacklistedTokenRepo: blackListedTokensRepository = new blackListedTokensRepository(blackListedTokensModel);
 
     signUp = async (req: Request, res: Response) => {
-        const { name, email, password, phone, gender } = req.body;
+        const { name, email, password, phone, gender, status } = req.body;
         const isEmailExist = await this.userRepo.exists({ email })
         if (isEmailExist) throw new conflictException('Email already exist', { invalidEmail: email });
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -31,7 +31,8 @@ class authService {
             password: hashedPassword,
             gender,
             role: roleEnum.TOURIST,
-            otps: [confirmationOtp]
+            otps: [confirmationOtp],
+            status: statusUserEnum.ACTIVE
         })
         emailEmitter.emit('sendEmail', {
             to: email,
@@ -42,7 +43,7 @@ class authService {
     }
     confirmEmail = async (req: Request, res: Response) => {
         const { email, otp } = req.body;
-        const user = await this.userRepo.findOneDocument({ email }, 'email isVerified OTPS');
+        const user = await this.userRepo.findOneDocument({ email }, 'email isVerified otps');
         if (!user) throw new badRequestException('user not found or already confirmed', { invalidEmail: email });
         if (user.isVerified) {
             throw new badRequestException('Email already confirmed', { invalidEmail: email });
@@ -68,7 +69,7 @@ class authService {
 
         const { email } = req.body;
 
-        const user = await this.userRepo.findOneDocument({ email }, "email isVerified +otps");
+        const user = await this.userRepo.findOneDocument({ email }, "email isVerified otps");
         if (!user) throw new badRequestException("User not found");
         if (user.isVerified) throw new badRequestException("Email already verified");
         user.otps = user.otps.filter(otp => otp.otpType !== otpTypesEnum.CONFIRMATION);
@@ -91,16 +92,20 @@ class authService {
     };
     signIn = async (req: Request, res: Response) => {
         const { email, password } = req.body;
-        const user = await this.userRepo.findOneDocument({ email }, 'email +password isVerified role');
+        const user = await this.userRepo.findOneDocument({ email }, 'email +password isVerified role status');
         if (!user) throw new badRequestException('Invalid email or password', { invalidEmail: email });
         if (!user.password) throw new badRequestException('Password is required');
 
         const isPasswordMatch = compareHash(password, user.password);
         if (!isPasswordMatch) throw new badRequestException('Invalid email or password', { invalidEmail: email });
         if (!user.isVerified) throw new badRequestException("Please confirm your email first");
+
         if (user.status !== statusUserEnum.ACTIVE) {
             throw new unauthorizedException("Your account is blocked");
         }
+        console.log(user._id.toString());
+        console.log(user.role);
+
         const accessToken = generateToken(
             {
                 _id: user._id.toString(),
@@ -236,7 +241,7 @@ class authService {
 
         return res.json(successResponse('Password changed successfully', 200));
     };
-    
+
 
 }
 
