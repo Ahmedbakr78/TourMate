@@ -1,83 +1,313 @@
-// import Vehicle from '../../db/models/Vehicle.js';
-// import Driver from '../../db/models/Driver.js';
-// import { asyncHandler } from '../../utils/asyncHandler.js';
-// import { ApiError, httpStatus } from '../../utils/apiError.js';
-// import { publicUrl, deleteFile } from '../../middlewares/upload.middleware.js';
+import { Response } from "express";
+import fs from "fs/promises";
+import {
+    IRequest,
+    IVehicle
+} from "../../../common/index.js";
+import {
+    driverModel,
+    driverRepository,
+    vehicleModel,
+    vehicleRepository
+} from "../../../db/index.js";
+import {
+    badRequestException,
+    conflictException,
+    deleteFileFromCloudinary,
+    pagination,
+    successResponse,
+    uploadFileToCloudinary
+} from "../../../utils/index.js";
 
-// export const createVehicle = asyncHandler(async (req, res) => {
-//   const driver = await Driver.findById(req.body.driver);
-//   if (!driver) throw new ApiError(httpStatus.NOT_FOUND, 'Driver not found');
+class vehicleService {
 
-//   const { driver: driverId, type, model, brand, vehicleModel, capacity, plateNumber } = req.body;
-//   const vehicle = await Vehicle.create({
-//     driverId,
-//     brand: brand || type,
-//     vehicleModel: vehicleModel || model,
-//     capacity,
-//     plateNumber,
-//   });
-//   driver.vehicleIds.push(vehicle._id);
-//   await driver.save();
+    private vehicleRepo = new vehicleRepository(vehicleModel);
+    private driverRepo = new driverRepository(driverModel);
 
-//   res.status(201).json({ status: 'success', data: vehicle });
-// });
+    createVehicle = async (req: IRequest, res: Response) => {
 
-// export const getVehicle = asyncHandler(async (req, res) => {
-//   const vehicle = await Vehicle.findById(req.params.id);
-//   if (!vehicle) throw new ApiError(httpStatus.NOT_FOUND, 'Vehicle not found');
-//   res.json({ status: 'success', data: vehicle });
-// });
+        const {
+            driverId,
+            brand,
+            vehicleModel: model,
+            capacity,
+            plateNumber
+        } = req.body;
 
-// export const getAllVehicles = asyncHandler(async (req, res) => {
-//   const { type, isActive, page = 1, limit = 20 } = req.query;
-//   const filter = {};
-//   if (type) filter.type = type;
-//   if (isActive !== undefined) filter.isActive = isActive === 'true';
+        const driver = await this.driverRepo.findDocumentById(driverId);
 
-//   const vehicles = await Vehicle.find(filter)
-//     .skip((page - 1) * limit)
-//     .limit(Number(limit));
-//   res.json({ status: 'success', data: vehicles, count: vehicles.length });
-// });
+        if (!driver)
+            throw new badRequestException("Driver not found");
 
-// export const updateVehicle = asyncHandler(async (req, res) => {
-//   const vehicle = await Vehicle.findByIdAndUpdate(req.params.id, req.body, {
-//     new: true,
-//     runValidators: true,
-//   });
-//   if (!vehicle) throw new ApiError(httpStatus.NOT_FOUND, 'Vehicle not found');
-//   res.json({ status: 'success', data: vehicle });
-// });
+        const plateExists = await this.vehicleRepo.exists({ plateNumber });
 
-// export const deleteVehicle = asyncHandler(async (req, res) => {
-//   const vehicle = await Vehicle.findByIdAndDelete(req.params.id);
-//   if (!vehicle) throw new ApiError(httpStatus.NOT_FOUND, 'Vehicle not found');
-//   await Driver.updateOne({ _id: vehicle.driverId }, { $pull: { vehicleIds: vehicle._id } });
-//   vehicle.carImages.forEach((img) => deleteFile(img.secure_url));
-//   res.json({ status: 'success', message: 'Vehicle deleted' });
-// });
+        if (plateExists)
+            throw new conflictException("Plate number already exists");
 
-// export const getDriverVehicles = asyncHandler(async (req, res) => {
-//   const vehicles = await Vehicle.find({ driverId: req.params.driverId });
-//   res.json({ status: 'success', data: vehicles });
-// });
+        const vehicle = await this.vehicleRepo.createNewDocument({
+            driverId,
+            brand,
+            vehicleModel: model,
+            capacity,
+            plateNumber,
+            carImages: []
+        } as Partial<IVehicle>);
 
-// export const uploadVehicleImage = asyncHandler(async (req, res) => {
-//   if (!req.file) throw new ApiError(httpStatus.UNPROCESSABLE, 'No file uploaded');
-//   const vehicle = await Vehicle.findById(req.params.id);
-//   if (!vehicle) throw new ApiError(httpStatus.NOT_FOUND, 'Vehicle not found');
-//   const url = publicUrl(req, req.file.filename);
-//   vehicle.carImages.push({ secure_url: url, public_id: req.file.filename });
-//   await vehicle.save();
-//   res.status(201).json({ status: 'success', data: { url, images: vehicle.carImages } });
-// });
+        return res.status(201).json(
+            successResponse(
+                "Vehicle created successfully",
+                201,
+                vehicle
+            )
+        );
+    };
 
-// export const deleteVehicleImage = asyncHandler(async (req, res) => {
-//   const { url } = req.body;
-//   const vehicle = await Vehicle.findById(req.params.id);
-//   if (!vehicle) throw new ApiError(httpStatus.NOT_FOUND, 'Vehicle not found');
-//   vehicle.carImages = vehicle.carImages.filter((i) => i.secure_url !== url);
-//   deleteFile(url);
-//   await vehicle.save();
-//   res.json({ status: 'success', data: { images: vehicle.carImages } });
-// });
+    getVehicleById = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+
+        const vehicle = await this.vehicleRepo.findDocumentById(id);
+
+        if (!vehicle)
+            throw new badRequestException("Vehicle not found");
+
+        return res.json(
+            successResponse(
+                "Vehicle fetched successfully",
+                200,
+                vehicle
+            )
+        );
+    };
+
+    getVehicles = async (req: IRequest, res: Response) => {
+
+        const { page, limit } = req.query;
+
+        const { skip, limit: currentLimit } = pagination({
+            page: Number(page),
+            limit: Number(limit)
+        });
+
+        const vehicles = await vehicleModel
+            .find()
+            .skip(skip)
+            .limit(currentLimit);
+
+        return res.json(
+            successResponse(
+                "Vehicles fetched successfully",
+                200,
+                vehicles
+            )
+        );
+    };
+
+    searchVehicles = async (req: IRequest, res: Response) => {
+
+        const { brand, plateNumber } = req.query;
+
+        const filter: any = {};
+
+        if (brand) {
+            filter.brand = { $regex: brand, $options: "i" };
+        }
+
+        if (plateNumber) {
+            filter.plateNumber = { $regex: plateNumber, $options: "i" };
+        }
+
+        const vehicles = await vehicleModel.find(filter);
+
+        return res.json(
+            successResponse(
+                "Vehicles fetched successfully",
+                200,
+                vehicles
+            )
+        );
+    };
+
+    updateVehicle = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+
+        const {
+            brand,
+            vehicleModel: model,
+            capacity,
+            plateNumber
+        } = req.body;
+
+        const vehicle = await this.vehicleRepo.findDocumentById(id);
+
+        if (!vehicle)
+            throw new badRequestException("Vehicle not found");
+
+        const updatedData: Partial<IVehicle> = {};
+
+        if (brand)
+            updatedData.brand = brand;
+
+        if (model)
+            updatedData.vehicleModel = model;
+
+        if (capacity)
+            updatedData.capacity = capacity;
+
+        if (plateNumber) {
+
+            const plateExists = await this.vehicleRepo.exists({
+                plateNumber,
+                _id: { $ne: id }
+            });
+
+            if (plateExists)
+                throw new conflictException("Plate number already exists");
+
+            updatedData.plateNumber = plateNumber;
+        }
+
+        if (!Object.keys(updatedData).length)
+            throw new badRequestException("No data provided to update");
+
+        const updatedVehicle = await this.vehicleRepo.findDocumentByIdAndUpdate(
+            id,
+            { $set: updatedData },
+            { new: true }
+        );
+
+        return res.json(
+            successResponse(
+                "Vehicle updated successfully",
+                200,
+                updatedVehicle
+            )
+        );
+    };
+
+    deleteVehicle = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+
+        const vehicle = await this.vehicleRepo.findDocumentById(id);
+
+        if (!vehicle)
+            throw new badRequestException("Vehicle not found");
+
+        if (vehicle.carImages?.length) {
+            await Promise.all(
+                vehicle.carImages.map((image) =>
+                    deleteFileFromCloudinary(image.public_id)
+                )
+            );
+        }
+
+        await this.vehicleRepo.deleteById(id);
+
+        return res.json(
+            successResponse("Vehicle deleted successfully", 200)
+        );
+    };
+
+    getDriverVehicles = async (req: IRequest, res: Response) => {
+
+        const { driverId } = req.params as { driverId: string };
+
+        const vehicles = await this.vehicleRepo.findDocuments({ driverId });
+
+        return res.json(
+            successResponse(
+                "Driver vehicles fetched successfully",
+                200,
+                vehicles
+            )
+        );
+    };
+
+    uploadVehicleImage = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+        const imagePath = req.file?.path;
+
+        if (!imagePath)
+            throw new badRequestException("Vehicle image is required");
+
+        const vehicle = await this.vehicleRepo.findDocumentById(id);
+
+        if (!vehicle)
+            throw new badRequestException("Vehicle not found");
+
+        const uploadResult = await uploadFileToCloudinary(
+            imagePath,
+            {
+                folder: "vehicle_images"
+            }
+        );
+
+        await fs.unlink(imagePath);
+
+        const updatedVehicle = await this.vehicleRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                $push: {
+                    carImages: {
+                        secure_url: uploadResult.secure_url,
+                        public_id: uploadResult.public_id
+                    }
+                }
+            },
+            { new: true }
+        );
+
+        return res.status(201).json(
+            successResponse(
+                "Vehicle image uploaded successfully",
+                201,
+                updatedVehicle
+            )
+        );
+    };
+
+    deleteVehicleImage = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+        const { public_id } = req.body;
+
+        if (!public_id)
+            throw new badRequestException("public_id is required");
+
+        const vehicle = await this.vehicleRepo.findDocumentById(id);
+
+        if (!vehicle)
+            throw new badRequestException("Vehicle not found");
+
+        const imageExists = vehicle.carImages?.some(
+            (image) => image.public_id === public_id
+        );
+
+        if (!imageExists)
+            throw new badRequestException("Image not found on this vehicle");
+
+        await deleteFileFromCloudinary(public_id);
+
+        const updatedVehicle = await this.vehicleRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                $pull: { carImages: { public_id } }
+            },
+            { new: true }
+        );
+
+        return res.json(
+            successResponse(
+                "Vehicle image deleted successfully",
+                200,
+                updatedVehicle
+            )
+        );
+    };
+
+}
+
+export default new vehicleService();

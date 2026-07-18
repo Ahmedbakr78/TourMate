@@ -57,7 +57,7 @@ const tripSchema = new mongoose.Schema<ITrip>(
         status: {
             type: String,
             enum: tripStatusEnum,
-            default: tripStatusEnum.DRAFT
+            default: tripStatusEnum.ACTIVE
         },
 
         routePath: {

@@ -1,8 +1,14 @@
-import { Request, Response } from "express";
-import { IRequest } from "../../../common/index.js";
-import { notificationModel, notificationRepository } from "../../../db/index.js";
-import { badRequestException, successResponse } from "../../../utils/index.js";
+import { Response } from "express";
 import mongoose from "mongoose";
+import { IRequest } from "../../../common/index.js";
+import {
+    notificationModel,
+    notificationRepository,
+    userModel,
+    userRepository
+} from "../../../db/index.js";
+import { badRequestException, successResponse } from "../../../utils/index.js";
+
 const getUser = (req: IRequest) => {
     if (!req.loggedInUser) {
         throw new badRequestException("User not authenticated");
@@ -10,9 +16,12 @@ const getUser = (req: IRequest) => {
 
     return req.loggedInUser.user;
 };
+
 class notificationService {
 
     private notificationRepo = new notificationRepository(notificationModel);
+    private userRepo = new userRepository(userModel);
+
     createNotification = async (req: IRequest, res: Response) => {
 
         const user = getUser(req);
@@ -27,6 +36,12 @@ class notificationService {
             throw new badRequestException("You can't send notification to yourself");
         }
 
+        const receiver = await this.userRepo.findDocumentById(receiverId);
+
+        if (!receiver) {
+            throw new badRequestException("Receiver not found");
+        }
+
         const notification = await this.notificationRepo.createNewDocument({
             senderId: user._id,
             receiverId,
@@ -34,12 +49,11 @@ class notificationService {
             message
         });
 
-
         if (!notification) {
             throw new badRequestException("Failed to create notification");
         }
 
-        return res.json(
+        return res.status(201).json(
             successResponse(
                 "Notification created successfully",
                 201,
@@ -51,6 +65,7 @@ class notificationService {
     getNotifications = async (req: IRequest, res: Response) => {
 
         const user = getUser(req);
+
         const notifications = await this.notificationRepo.findDocuments(
             {
                 receiverId: user._id
@@ -60,14 +75,24 @@ class notificationService {
                 sort: { createdAt: -1 }
             }
         );
+
+        return res.json(
+            successResponse(
+                "Notifications fetched successfully",
+                200,
+                notifications
+            )
+        );
     };
 
     getNotificationById = async (req: IRequest, res: Response) => {
 
         const id = req.params.id as string;
+
         if (!mongoose.isValidObjectId(id)) {
             throw new badRequestException("Invalid notification id");
         }
+
         const user = getUser(req);
 
         const notification = await this.notificationRepo.findOneDocument({
@@ -91,15 +116,17 @@ class notificationService {
     markNotificationAsRead = async (req: IRequest, res: Response) => {
 
         const id = req.params.id as string;
+
         if (!mongoose.isValidObjectId(id)) {
             throw new badRequestException("Invalid notification id");
         }
+
         const user = getUser(req);
-        const notification = await this.notificationRepo.findOneDocument(
-            {
-                _id: id,
-                receiverId: user._id
-            });
+
+        const notification = await this.notificationRepo.findOneDocument({
+            _id: id,
+            receiverId: user._id
+        });
 
         if (!notification) {
             throw new badRequestException("Notification not found");
@@ -118,12 +145,13 @@ class notificationService {
     };
 
     markAllNotificationsAsRead = async (req: IRequest, res: Response) => {
+
         const user = getUser(req);
+
         const result = await this.notificationRepo.updateMultipleDocument(
-
             {
-
-                receiverId: user._id
+                receiverId: user._id,
+                isRead: false
             },
             {
                 $set: {
@@ -131,6 +159,7 @@ class notificationService {
                 }
             }
         );
+
         if (result.modifiedCount === 0) {
             throw new badRequestException("No unread notifications found");
         }
@@ -147,10 +176,13 @@ class notificationService {
     deleteNotification = async (req: IRequest, res: Response) => {
 
         const id = req.params.id as string;
+
         if (!mongoose.isValidObjectId(id)) {
             throw new badRequestException("Invalid notification id");
         }
+
         const user = getUser(req);
+
         const notification = await this.notificationRepo.findAndDeleteDocument({
             _id: id,
             receiverId: user._id
@@ -181,14 +213,17 @@ class notificationService {
             throw new badRequestException("No notifications found");
         }
 
-        successResponse(
-            "All notifications deleted successfully",
-            200,
-            result
-        )
+        return res.json(
+            successResponse(
+                "All notifications deleted successfully",
+                200,
+                result
+            )
+        );
     };
 
     getUnreadCount = async (req: IRequest, res: Response) => {
+
         const user = getUser(req);
 
         const count = await this.notificationRepo.countDocuments({
@@ -205,4 +240,5 @@ class notificationService {
         );
     };
 }
+
 export default new notificationService();

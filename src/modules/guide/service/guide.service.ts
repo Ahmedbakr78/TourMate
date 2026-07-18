@@ -1,291 +1,327 @@
-// import { Request, Response } from "express";
-// import {
-//     IGuide,
-//     roleEnum,
-//     verificationStatusEnum
-// } from "../../../common/index.js";
-// import {
-//     guideModel,
-//     guideRepository,
-//     userModel,
-//     userRepository
-// } from "../../../db/index.js";
-// import {
-//     badRequestException,
-//     conflictException,
-//     successResponse
-// } from "../../../utils/index.js";
+import { Response } from "express";
+import fs from "fs/promises";
+import {
+    IGuide,
+    IRequest,
+    roleEnum,
+    verificationStatusEnum
+} from "../../../common/index.js";
+import {
+    guideModel,
+    guideRepository,
+    userModel,
+    userRepository
+} from "../../../db/index.js";
+import {
+    badRequestException,
+    conflictException,
+    deleteFileFromCloudinary,
+    pagination,
+    successResponse,
+    uploadFileToCloudinary
+} from "../../../utils/index.js";
 
-// class guideService {
+class guideService {
 
-//     private guideRepo = new guideRepository(guideModel);
-//     private userRepo = new userRepository(userModel);
+    private guideRepo = new guideRepository(guideModel);
+    private userRepo = new userRepository(userModel);
 
-//     createGuide = async (req: Request, res: Response) => {
+    createGuide = async (req: IRequest, res: Response) => {
 
-//         const {
-//             userId,
-//             languages,
-//             experience,
-//             certificate
-//         } = req.body;
+        const {
+            userId,
+            languages,
+            experience,
+            certificate
+        } = req.body;
 
-//         const user = await this.userRepo.findDocumentById(userId);
+        const user = await this.userRepo.findDocumentById(userId);
 
-//         if (!user)
-//             throw new badRequestException("User not found");
+        if (!user)
+            throw new badRequestException("User not found");
 
-//         const existingGuide = await this.guideRepo.findOneDocument({ userId });
+        const existingGuide = await this.guideRepo.findOneDocument({ userId });
 
-//         if (existingGuide)
-//             throw new conflictException("Guide already exists");
+        if (existingGuide)
+            throw new conflictException("Guide already exists");
 
-//         await this.userRepo.findDocumentByIdAndUpdate(
-//             userId,
-//             {
-//                 role: roleEnum.GUIDE
-//             }
-//         );
+        await this.userRepo.findDocumentByIdAndUpdate(
+            userId,
+            {
+                role: roleEnum.GUIDE
+            }
+        );
 
-//         const guide = await this.guideRepo.createNewDocument({
-//             userId,
-//             languages,
-//             experience: experience || 0,
-//             certificate,
-//             rating: 0,
-//             availability: true,
-//             verificationStatus: verificationStatusEnum.PENDING
-//         } as Partial<IGuide>);
+        const guide = await this.guideRepo.createNewDocument({
+            userId,
+            languages,
+            experience: experience || 0,
+            certificate,
+            rating: 0,
+            availability: true,
+            verificationStatus: verificationStatusEnum.PENDING
+        } as Partial<IGuide>);
 
-//         return res.json(
-//             successResponse(
-//                 "Guide created successfully",
-//                 201,
-//                 guide
-//             )
-//         );
-//     };
-//     updateGuide = async (req: Request, res: Response) => {
+        return res.json(
+            successResponse(
+                "Guide created successfully",
+                201,
+                guide
+            )
+        );
+    };
 
-//         const { id } = req.params as { id: string };
+    updateGuide = async (req: IRequest, res: Response) => {
 
-//         const {
-//             languages,
-//             experience,
-//             certificate,
-//             availability,
-//             verificationStatus
-//         } = req.body;
+        const { id } = req.params as { id: string };
 
-//         const guide = await this.guideRepo.findDocumentById(id);
+        const {
+            languages,
+            experience,
+            certificate,
+            availability,
+            verificationStatus
+        } = req.body;
 
-//         if (!guide)
-//             throw new badRequestException("Guide not found");
+        const guide = await this.guideRepo.findDocumentById(id);
 
-//         const updatedData: Partial<IGuide> = {};
+        if (!guide)
+            throw new badRequestException("Guide not found");
 
-//         if (languages)
-//             updatedData.languages = languages;
+        const updatedData: Partial<IGuide> = {};
 
-//         if (experience)
-//             updatedData.experience = experience;
+        if (languages)
+            updatedData.languages = languages;
 
-//         if (certificate)
-//             updatedData.certificate = certificate;
+        if (experience)
+            updatedData.experience = experience;
 
-//         if (typeof availability === "boolean")
-//             updatedData.availability = availability;
+        if (certificate)
+            updatedData.certificate = certificate;
 
-//         if (verificationStatus)
-//             updatedData.verificationStatus = verificationStatus;
+        if (typeof availability === "boolean")
+            updatedData.availability = availability;
 
-//         if (!Object.keys(updatedData).length)
-//             throw new badRequestException("No data provided to update");
+        if (verificationStatus)
+            updatedData.verificationStatus = verificationStatus;
 
-//         const updatedGuide = await this.guideRepo.findDocumentByIdAndUpdate(
-//             id,
-//             { $set: updatedData },
-//             { new: true }
-//         );
+        if (!Object.keys(updatedData).length)
+            throw new badRequestException("No data provided to update");
 
-//         return res.json(
-//             successResponse(
-//                 "Guide updated successfully",
-//                 200,
-//                 updatedGuide
-//             )
-//         );
-//     };
+        const updatedGuide = await this.guideRepo.findDocumentByIdAndUpdate(
+            id,
+            { $set: updatedData },
+            { new: true }
+        );
 
-//     deleteGuide = async (req: Request, res: Response) => {
+        return res.json(
+            successResponse(
+                "Guide updated successfully",
+                200,
+                updatedGuide
+            )
+        );
+    };
 
-//         const { id } = req.params as { id: string };
+    deleteGuide = async (req: IRequest, res: Response) => {
 
-//         const guide = await this.guideRepo.findDocumentById(id);
+        const { id } = req.params as { id: string };
 
-//         if (!guide)
-//             throw new badRequestException("Guide not found");
+        const guide = await this.guideRepo.findDocumentById(id);
 
-//         await this.userRepo.findDocumentByIdAndUpdate(
-//             guide.userId,
-//             {
-//                 role: roleEnum.TOURIST
-//             }
-//         );
+        if (!guide)
+            throw new badRequestException("Guide not found");
 
-//         await this.guideRepo.deleteById(id);
+        await this.userRepo.findDocumentByIdAndUpdate(
+            guide.userId,
+            {
+                role: roleEnum.TOURIST
+            }
+        );
 
-//         return res.json(
-//             successResponse(
-//                 "Guide deleted successfully",
-//                 200
-//             )
-//         );
-//     };
+        await this.guideRepo.deleteById(id);
 
-//     getGuideById = async (req: Request, res: Response) => {
+        return res.json(
+            successResponse(
+                "Guide deleted successfully",
+                200
+            )
+        );
+    };
 
-//         const { id } = req.params as { id: string };
+    getGuideById = async (req: IRequest, res: Response) => {
 
-//         const guide = await this.guideRepo
-//             .findDocumentById(id)
-//             .populate("userId", "-password");
+        const { id } = req.params as { id: string };
 
-//         if (!guide)
-//             throw new badRequestException("Guide not found");
+        const guide = await guideModel
+            .findById(id)
+            .populate("userId", "-password");
 
-//         return res.json(
-//             successResponse(
-//                 "Guide fetched successfully",
-//                 200,
-//                 guide
-//             )
-//         );
-//     };
+        if (!guide)
+            throw new badRequestException("Guide not found");
 
-//     getGuides = async (req: Request, res: Response) => {
+        return res.json(
+            successResponse(
+                "Guide fetched successfully",
+                200,
+                guide
+            )
+        );
+    };
 
-//         const { page, limit } = req.query;
+    getGuides = async (req: IRequest, res: Response) => {
 
-//         const { skip, limit: currentLimit } = pagination({
-//             page: Number(page),
-//             limit: Number(limit)
-//         });
+        const { page, limit } = req.query;
 
-//         const guides = await this.guideRepo
-//             .find()
-//             .populate("userId", "-password")
-//             .skip(skip)
-//             .limit(currentLimit);
+        const { skip, limit: currentLimit } = pagination({
+            page: Number(page),
+            limit: Number(limit)
+        });
 
-//         return res.json(
-//             successResponse(
-//                 "Guides fetched successfully",
-//                 200,
-//                 guides
-//             )
-//         );
-//     };
+        const guides = await guideModel
+            .find()
+            .populate("userId", "-password")
+            .skip(skip)
+            .limit(currentLimit);
 
-//     searchGuides = async (req: Request, res: Response) => {
+        return res.json(
+            successResponse(
+                "Guides fetched successfully",
+                200,
+                guides
+            )
+        );
+    };
 
-//         const {
-//             q,
-//             language,
-//             specialty,
-//             lat,
-//             lng,
-//             radius = 5000
-//         } = req.query;
+    searchGuides = async (req: IRequest, res: Response) => {
 
-//         const filter: any = {};
+        const {
+            language,
+            availability,
+            verificationStatus
+        } = req.query;
 
-//         if (language)
-//             filter.languages = language;
+        const filter: any = {};
 
-//         if (specialty)
-//             filter.specialties = specialty;
+        if (language)
+            filter.languages = language;
 
-//         let query = this.guideRepo.find(filter).populate("userId", "-password");
+        if (availability !== undefined)
+            filter.availability = availability === "true";
 
-//         if (q)
-//             query = query.where("bio").regex(new RegExp(q, "i"));
+        if (verificationStatus)
+            filter.verificationStatus = verificationStatus;
 
-//         if (lat && lng) {
-//             query = query.where("currentLocation").near({
-//                 center: { type: "Point", coordinates: [Number(lng), Number(lat)] },
-//                 maxDistance: Number(radius)
-//             });
-//         }
+        const guides = await guideModel
+            .find(filter)
+            .populate("userId", "-password");
 
-//         const guides = await query.limit(50);
+        return res.json(
+            successResponse(
+                "Guides fetched successfully",
+                200,
+                guides
+            )
+        );
+    };
 
-//         return res.json(
-//             successResponse(
-//                 "Guides fetched successfully",
-//                 200,
-//                 guides
-//             )
-//         );
-//     };
+    updateAvailability = async (req: IRequest, res: Response) => {
 
-//     updateAvailability = async (req: Request, res: Response) => {
+        const { id } = req.params as { id: string };
+        const { availability } = req.body;
 
-//         const { availability } = req.body;
+        if (typeof availability !== "boolean")
+            throw new badRequestException("Invalid availability value");
 
-//         if (typeof availability !== "boolean")
-//             throw new badRequestException("Invalid availability value");
+        const guide = await this.guideRepo.findDocumentByIdAndUpdate(
+            id,
+            { availability },
+            { new: true }
+        );
 
-//         const guide = await this.guideRepo.findDocumentByIdAndUpdate(
-//             req.params.id,
-//             { availability, lastSeen: new Date() },
-//             { new: true }
-//         );
+        if (!guide)
+            throw new badRequestException("Guide not found");
 
-//         if (!guide)
-//             throw new badRequestException("Guide not found");
+        return res.json(
+            successResponse(
+                "Guide updated successfully",
+                200,
+                guide
+            )
+        );
+    };
 
-//         return res.json(
-//             successResponse(
-//                 "Guide updated successfully",
-//                 200,
-//                 guide
-//             )   
-//         );
-//     };
-//     uploadCertificate = async (req: Request, res: Response) => {
-//         if (!req.file)
-//             throw new badRequestException("No file uploaded");
-//         const guide = await this.guideRepo.findDocumentById(req.params.id);
-//         if (!guide)
-//             throw new badRequestException("Guide not found");
-//         const url = publicUrl(req, req.file.filename);
-//         guide.certificate = url;
-//         await guide.save();
-//         res.status(201).json(
-//             successResponse(
-//                 "Certificate uploaded successfully",
-//                 201,
-//                 guide.toSafeJSON()
-//             )
-//         );
-//     };
-//     deleteCertificate = async (req: Request, res: Response) => {
-//         const { url } = req.body;
-//         const guide = await this.guideRepo.findDocumentById(req.params.id);
-//         if (!guide)
-//             throw new badRequestException("Guide not found");
-//         guide.certificate = null;
-//         deleteFile(url);
-//         await guide.save();
-//         res.json(
-//             successResponse(
-//                 "Certificate deleted successfully",
-//                 200
-//             )
-//         );
-//     };
+    uploadCertificate = async (req: IRequest, res: Response) => {
 
-// }
+        const { id } = req.params as { id: string };
+        const filePath = req.file?.path;
 
-// export default new guideService();
+        if (!filePath)
+            throw new badRequestException("Certificate file is required");
+
+        const guide = await this.guideRepo.findDocumentById(id);
+
+        if (!guide)
+            throw new badRequestException("Guide not found");
+
+        const uploadResult = await uploadFileToCloudinary(
+            filePath,
+            {
+                folder: "guide_certificates"
+            }
+        );
+
+        await fs.unlink(filePath);
+
+        const updatedGuide = await this.guideRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                certificate: uploadResult.secure_url
+            },
+            {
+                new: true
+            }
+        );
+
+        return res.status(201).json(
+            successResponse(
+                "Certificate uploaded successfully",
+                201,
+                updatedGuide
+            )
+        );
+    };
+
+    deleteCertificate = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+
+        const guide = await this.guideRepo.findDocumentById(id);
+
+        if (!guide)
+            throw new badRequestException("Guide not found");
+
+        if (!guide.certificate)
+            throw new badRequestException("No certificate to delete");
+
+        await this.guideRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                $unset: { certificate: 1 }
+            },
+            {
+                new: true
+            }
+        );
+
+        return res.json(
+            successResponse(
+                "Certificate deleted successfully",
+                200
+            )
+        );
+    };
+
+}
+
+export default new guideService();
