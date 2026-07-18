@@ -10,7 +10,7 @@ export const getUsers = asyncHandler(async (req, res) => {
   const { role, isActive } = req.query;
   const filter = {};
   if (role) filter.role = role;
-  if (isActive !== undefined) filter.isActive = isActive === 'true';
+  if (isActive !== undefined) filter.status = isActive === 'true' ? 'ACTIVE' : 'INACTIVE';
 
   const users = await User.find(filter).select('-password -refreshTokens');
   res.json({ status: 'success', data: users });
@@ -19,7 +19,7 @@ export const getUsers = asyncHandler(async (req, res) => {
 export const blockUser = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.params.id,
-    { isActive: false },
+    { status: 'INACTIVE' },
     { new: true }
   ).select('-password');
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
@@ -29,7 +29,7 @@ export const blockUser = asyncHandler(async (req, res) => {
 export const unblockUser = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     req.params.id,
-    { isActive: true },
+    { status: 'ACTIVE' },
     { new: true }
   ).select('-password');
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, 'User not found');
@@ -43,7 +43,7 @@ export const getStats = asyncHandler(async (_req, res) => {
       Driver.countDocuments(),
       Guide.countDocuments(),
       Vehicle.countDocuments(),
-      Trip.countDocuments({ status: { $in: ['Ongoing', 'Confirmed', 'Pending'] } }),
+      Trip.countDocuments({ status: { $in: ['ONGOING', 'CONFIRMED', 'PENDING'] } }),
     ]);
 
   res.json({

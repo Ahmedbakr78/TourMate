@@ -5,7 +5,7 @@ export function authorize(...roles) {
     if (!req.user) {
       return next(new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required'));
     }
-    if (roles.length && !roles.includes(req.user.role)) {
+    if (roles.length && !roles.map((r) => r.toUpperCase()).includes(String(req.user.role).toUpperCase())) {
       return next(
         new ApiError(
           httpStatus.FORBIDDEN,

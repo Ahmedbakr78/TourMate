@@ -10,6 +10,7 @@ const locationSchema = new Schema(
   { _id: false }
 );
 
+// LostItem aligns with Jamal's module intent (reportedBy user ref, found flag).
 const lostItemSchema = new Schema(
   {
     reportedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },

@@ -7,8 +7,8 @@ export interface User {
   email: string;
   phone?: string;
   role: Role;
-  isActive: boolean;
-  avatarUrl?: string;
+  status: string;
+  profileImage?: { secure_url?: string; public_id?: string };
 }
 
 export interface AuthResponse {

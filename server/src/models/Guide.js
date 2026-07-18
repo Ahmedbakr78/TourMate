@@ -5,24 +5,28 @@ const { Schema } = mongoose;
 const locationSchema = new Schema(
   {
     type: { type: String, enum: ['Point'], default: 'Point' },
-    coordinates: { type: [Number], index: '2dsphere', default: [0, 0] },
+    coordinates: { type: [Number], default: [0, 0] },
   },
   { _id: false }
 );
 
+// Aligned to Jamal's canonical Guide schema: userId ref, Boolean availability,
+// single `certificate` string, verificationStatus, experience.
 const guideSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     languages: [{ type: String }],
-    specialties: [{ type: String }],
-    bio: { type: String },
-    availability: {
-      type: String,
-      enum: ['available', 'busy', 'offline'],
-      default: 'offline',
-    },
+    experience: { type: Number, default: 0 },
+    // Jamal stores a single certificate string (Ahmed previously used certificateUrls[]).
+    certificate: { type: String },
     rating: { type: Number, default: 0, min: 0, max: 5 },
-    certificateUrls: [{ type: String }],
+    availability: { type: Boolean, default: true },
+    verificationStatus: {
+      type: String,
+      enum: ['PENDING', 'APPROVED', 'REJECTED'],
+      default: 'PENDING',
+    },
+    // Ahmed-only extension.
     currentLocation: { type: locationSchema, default: () => ({ type: 'Point', coordinates: [0, 0] }) },
     lastSeen: { type: Date, default: Date.now },
   },

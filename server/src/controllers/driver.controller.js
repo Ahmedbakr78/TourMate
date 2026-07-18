@@ -19,7 +19,7 @@ export const createDriver = asyncHandler(async (req, res) => {
   });
 
   const driver = await Driver.create({
-    user: user._id,
+    userId: user._id,
     licenseNumber,
     nationalId,
   });
@@ -36,7 +36,11 @@ export const getDriver = asyncHandler(async (req, res) => {
 export const getAllDrivers = asyncHandler(async (req, res) => {
   const { availability, page = 1, limit = 20 } = req.query;
   const filter = {};
-  if (availability) filter.availability = availability;
+  if (availability !== undefined) {
+    const map = { available: true, busy: true, offline: false };
+    filter.availability =
+      typeof availability === 'string' ? (availability in map ? map[availability] : true) : availability;
+  }
 
   const drivers = await Driver.find(filter)
     .populate('user', '-password')
@@ -81,9 +85,16 @@ export const searchDrivers = asyncHandler(async (req, res) => {
 });
 
 export const updateAvailability = asyncHandler(async (req, res) => {
-  const { availability } = req.body;
-  if (!['available', 'busy', 'offline'].includes(availability)) {
-    throw new ApiError(httpStatus.UNPROCESSABLE, 'Invalid availability value');
+  let availability = req.body.availability;
+  if (typeof availability === 'string') {
+    const map = { available: true, busy: true, offline: false };
+    if (!(availability in map)) {
+      throw new ApiError(httpStatus.UNPROCESSABLE, 'Invalid availability value');
+    }
+    availability = map[availability];
+  }
+  if (typeof availability !== 'boolean') {
+    throw new ApiError(httpStatus.UNPROCESSABLE, 'Availability must be a boolean');
   }
   const driver = await Driver.findByIdAndUpdate(
     req.params.id,

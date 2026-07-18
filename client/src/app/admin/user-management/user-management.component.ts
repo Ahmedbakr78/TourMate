@@ -12,8 +12,8 @@ import { User } from '../../core/models/user.model';
         <div class="tm-card user">
           <div class="row"><strong>{{ u.name }}</strong><span class="role">{{ u.role }}</span></div>
           <div class="email">{{ u.email }}</div>
-          <div class="status" [class.blocked]="!u.isActive">
-            {{ u.isActive ? 'Active' : 'Blocked' }}
+          <div class="status" [class.blocked]="u.status !== 'ACTIVE'">
+            {{ u.status === 'ACTIVE' ? 'Active' : 'Blocked' }}
           </div>
           @if (u.isActive) {
             <button class="tm-btn tm-btn-danger" (click)="block(u)">Block</button>
