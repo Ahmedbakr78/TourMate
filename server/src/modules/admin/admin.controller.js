@@ -1,10 +1,10 @@
-import User from '../models/User.js';
-import Driver from '../models/Driver.js';
-import Guide from '../models/Guide.js';
-import Vehicle from '../models/Vehicle.js';
-import Trip from '../models/Trip.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { ApiError, httpStatus } from '../utils/apiError.js';
+import User from '../../db/models/User.js';
+import Driver from '../../db/models/Driver.js';
+import Guide from '../../db/models/Guide.js';
+import Vehicle from '../../db/models/Vehicle.js';
+import Trip from '../../db/models/Trip.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { ApiError, httpStatus } from '../../utils/apiError.js';
 
 export const getUsers = asyncHandler(async (req, res) => {
   const { role, isActive } = req.query;

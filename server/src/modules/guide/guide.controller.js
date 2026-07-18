@@ -1,9 +1,9 @@
-import Guide from '../models/Guide.js';
-import User from '../models/User.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { ApiError, httpStatus } from '../utils/apiError.js';
-import { hashPassword } from '../utils/password.js';
-import { publicUrl, deleteFile } from '../middleware/upload.middleware.js';
+import Guide from '../../db/models/Guide.js';
+import User from '../../db/models/User.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { ApiError, httpStatus } from '../../utils/apiError.js';
+import { hashPassword } from '../../utils/password.js';
+import { publicUrl, deleteFile } from '../../middlewares/upload.middleware.js';
 
 export const createGuide = asyncHandler(async (req, res) => {
   const { name, email, password, phone, languages, specialties, bio } = req.body;

@@ -1,8 +1,8 @@
-import { fetchPOIs } from '../services/overpass.service.js';
-import { getRoute } from '../services/osrm.service.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { ApiError, httpStatus } from '../utils/apiError.js';
-import { cache } from '../services/cache.service.js';
+import { fetchPOIs } from './service/overpass.service.js';
+import { getRoute } from './service/osrm.service.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { ApiError, httpStatus } from '../../utils/apiError.js';
+import { cache } from './service/cache.service.js';
 
 export const getPOIs = asyncHandler(async (req, res) => {
   const { lat, lng, radius = 1000, categories } = req.query;

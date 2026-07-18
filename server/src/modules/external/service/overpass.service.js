@@ -1,6 +1,6 @@
-import env from '../config/env.js';
+import env from '../../../config/env.js';
 import { cache } from './cache.service.js';
-import { ApiError, httpStatus } from '../utils/apiError.js';
+import { ApiError, httpStatus } from '../../../utils/apiError.js';
 
 export function buildPOIQuery({ lat, lng, radius = 1000, categories = ['tourism', 'amenity'] }) {
   const bbox = [

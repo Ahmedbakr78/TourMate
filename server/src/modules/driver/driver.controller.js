@@ -1,8 +1,8 @@
-import Driver from '../models/Driver.js';
-import User from '../models/User.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { ApiError, httpStatus } from '../utils/apiError.js';
-import { hashPassword } from '../utils/password.js';
+import Driver from '../../db/models/Driver.js';
+import User from '../../db/models/User.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { ApiError, httpStatus } from '../../utils/apiError.js';
+import { hashPassword } from '../../utils/password.js';
 
 export const createDriver = asyncHandler(async (req, res) => {
   const { name, email, password, phone, licenseNumber, nationalId } = req.body;

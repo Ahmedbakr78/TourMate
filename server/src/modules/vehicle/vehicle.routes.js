@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import * as vehicle from '../controllers/vehicle.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { rbac } from '../middleware/rbac.middleware.js';
-import { upload } from '../middleware/upload.middleware.js';
+import * as vehicle from './vehicle.controller.js';
+import { authenticate } from '../../middlewares/auth.middleware.js';
+import { rbac } from '../../middlewares/rbac.middleware.js';
+import { upload } from '../../middlewares/upload.middleware.js';
 
 const router = Router();
 

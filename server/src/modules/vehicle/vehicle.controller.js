@@ -1,8 +1,8 @@
-import Vehicle from '../models/Vehicle.js';
-import Driver from '../models/Driver.js';
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { ApiError, httpStatus } from '../utils/apiError.js';
-import { publicUrl, deleteFile } from '../middleware/upload.middleware.js';
+import Vehicle from '../../db/models/Vehicle.js';
+import Driver from '../../db/models/Driver.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { ApiError, httpStatus } from '../../utils/apiError.js';
+import { publicUrl, deleteFile } from '../../middlewares/upload.middleware.js';
 
 export const createVehicle = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.body.driver);

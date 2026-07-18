@@ -1,6 +1,6 @@
 import { ApiError, httpStatus } from '../utils/apiError.js';
 
-export function authorize(...roles) {
+export function rbac(...roles) {
   return (req, _res, next) => {
     if (!req.user) {
       return next(new ApiError(httpStatus.UNAUTHORIZED, 'Authentication required'));
@@ -16,3 +16,5 @@ export function authorize(...roles) {
     next();
   };
 }
+
+export { rbac as authorize };

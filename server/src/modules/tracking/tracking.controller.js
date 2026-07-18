@@ -1,13 +1,13 @@
-import { asyncHandler } from '../utils/asyncHandler.js';
-import { ApiError, httpStatus } from '../utils/apiError.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { ApiError, httpStatus } from '../../utils/apiError.js';
 import {
   updateDriverLocation,
   getDriverLocation,
   getLocationsByDrivers,
   getActiveTripLocations,
   removeDriverLocation,
-} from '../services/tracking.service.js';
-import Driver from '../models/Driver.js';
+} from './service/tracking.service.js';
+import Driver from '../../db/models/Driver.js';
 
 export const pushLocation = asyncHandler(async (req, res) => {
   const { driverId } = req.params;

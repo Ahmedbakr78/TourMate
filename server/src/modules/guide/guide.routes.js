@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import * as guide from '../controllers/guide.controller.js';
-import { authenticate, authorize } from '../middleware/auth.middleware.js';
-import { rbac } from '../middleware/rbac.middleware.js';
-import { upload } from '../middleware/upload.middleware.js';
+import * as guide from './guide.controller.js';
+import { authenticate } from '../../middlewares/auth.middleware.js';
+import { authorize, rbac } from '../../middlewares/rbac.middleware.js';
+import { upload } from '../../middlewares/upload.middleware.js';
 
 const router = Router();
 

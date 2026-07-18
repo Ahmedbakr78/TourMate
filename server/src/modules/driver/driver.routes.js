@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import * as driver from '../controllers/driver.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { rbac } from '../middleware/rbac.middleware.js';
+import * as driver from './driver.controller.js';
+import { authenticate } from '../../middlewares/auth.middleware.js';
+import { rbac } from '../../middlewares/rbac.middleware.js';
 
 const router = Router();
 

@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import * as tracking from '../controllers/tracking.controller.js';
-import { authenticate } from '../middleware/auth.middleware.js';
-import { rbac } from '../middleware/rbac.middleware.js';
+import * as tracking from './tracking.controller.js';
+import { authenticate } from '../../middlewares/auth.middleware.js';
+import { rbac } from '../../middlewares/rbac.middleware.js';
 
 const router = Router();
 
