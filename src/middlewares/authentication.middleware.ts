@@ -1,6 +1,6 @@
 import { NextFunction, Response } from "express";
 import { IRequest, statusUserEnum } from "../common/index.js";
-import { badRequestException, unauthorizedException, verifyToken } from "../utils/index.js";
+import { unauthorizedException, verifyToken } from "../utils/index.js";
 
 import { blackListedTokensModel, blackListedTokensRepository, userModel, userRepository } from "../db/index.js";
 

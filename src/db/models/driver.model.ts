@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { PaginateModel } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 import { IDriver, verificationStatusEnum } from "../../common/index.js";
 
 const driverSchema = new mongoose.Schema<IDriver>(
@@ -52,5 +53,7 @@ const driverSchema = new mongoose.Schema<IDriver>(
 
 driverSchema.index({ currentLocation: "2dsphere" });
 
-export const driverModel = mongoose.model<IDriver>("Driver", driverSchema);
+driverSchema.plugin(mongoosePaginate);
+
+export const driverModel = mongoose.model<IDriver, PaginateModel<IDriver>>("Driver", driverSchema);
 

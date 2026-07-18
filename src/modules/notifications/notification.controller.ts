@@ -1,8 +1,12 @@
 import { Router } from "express";
-
-
+import notificationService from "./service/nofification.service.js";
 const notificationRouter = Router();
-
-
-
+notificationRouter.post("/", notificationService.createNotification);
+notificationRouter.get("/", notificationService.getNotifications);
+notificationRouter.get("/unread/count", notificationService.getUnreadCount);
+notificationRouter.get("/:id", notificationService.getNotificationById);
+notificationRouter.patch("/:id/read", notificationService.markNotificationAsRead);
+notificationRouter.delete("/:id", notificationService.deleteNotification);
+notificationRouter.patch("/read-all", notificationService.markAllNotificationsAsRead);
+notificationRouter.delete("/", notificationService.deleteAllNotifications);
 export { notificationRouter };

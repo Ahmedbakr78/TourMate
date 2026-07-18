@@ -28,7 +28,7 @@ enum verificationStatusEnum {
 }
 
 enum tripStatusEnum {
-    DRAFT = "draft",
+    ACTIVE = "active",
     PENDING = "pending",
     CONFIRMED = "confirmed",
     ONGOING = "ongoing",

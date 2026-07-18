@@ -1,5 +1,7 @@
-import { IRequest } from "../../../common/index.js";
+import { Response } from "express";
+import { IRequest, lostItemStatusEnum, roleEnum, statusUserEnum, tripStatusEnum } from "../../../common/index.js";
 import { driverModel, driverRepository, guideModel, guideRepository, lostItemModel, lostItemRepository, placeModel, placeRepository, reviewModel, reviewRepository, tripModel, tripRepository, userModel, userRepository, voteModel, voteRepository } from "../../../db/index.js";
+import { badRequestException, deleteFileFromCloudinary, successResponse, unauthorizedException } from "../../../utils/index.js";
 
 
 class adminService {
@@ -15,31 +17,156 @@ class adminService {
 
     dashboard = async (req: IRequest, res: Response) => {
 
-        // const [
-        //     totalUsers, totalTrips, totalPlaces, totalReviews,
-        //     totalVotes, totalGuides, totalDrivers, totalLostItems
-        // ] = await Promise.all([
+        const [
+            totalUsers, totalTrips, totalPlaces, totalReviews,
+            totalVotes, totalGuides, totalDrivers, totalLostItems
+        ] = await Promise.all([
 
-        //     this.userRepo.countDocuments(),
-        //     this.tripRepo.countDocuments(),
-        //     this.placeRepo.countDocuments(),
-        //     this.reviewRepo.countDocuments(),
-        //     this.voteRepo.countDocuments(),
-        //     this.guideRepo.countDocuments(),
-        //     this.driverRepo.countDocuments(),
-        //     this.lostItemRepo.countDocuments()
-        // ]);
+            this.userRepo.countDocuments(),
+            this.tripRepo.countDocuments(),
+            this.placeRepo.countDocuments(),
+            this.reviewRepo.countDocuments(),
+            this.voteRepo.countDocuments(),
+            this.guideRepo.countDocuments(),
+            this.driverRepo.countDocuments(),
+            this.lostItemRepo.countDocuments()
+        ]);
 
-        // return res.json(successResponse("Dashboard fetched successfully", 200, {
-        //     totalUsers,
-        //     totalTrips,
-        //     totalPlaces,
-        //     totalReviews,
-        //     totalVotes,
-        //     totalGuides,
-        //     totalDrivers,
-        //     totalLostItems
-        // }));
+        return res.json(successResponse("Dashboard fetched successfully", 200, {
+            totalUsers,
+            totalTrips,
+            totalPlaces,
+            totalReviews,
+            totalVotes,
+            totalGuides,
+            totalDrivers,
+            totalLostItems
+        }));
+    };
+    systemStatistics = async (req: IRequest, res: Response) => {
+
+        const [
+            totalUsers, activeUsers, blockedUsers, totalTrips,
+            activeTrips, completedTrips, cancelledTrips,
+            totalLostItems, pendingLostItems, resolvedLostItems
+        ] = await Promise.all([
+
+            // Users
+            this.userRepo.countDocuments(),
+            this.userRepo.countDocuments({ status: statusUserEnum.ACTIVE }),
+            this.userRepo.countDocuments({ status: statusUserEnum.BLOCKED }),
+
+            // Trips
+            this.tripRepo.countDocuments(),
+            this.tripRepo.countDocuments({ status: tripStatusEnum.ACTIVE }),
+            this.tripRepo.countDocuments({ status: tripStatusEnum.COMPLETED }),
+            this.tripRepo.countDocuments({ status: tripStatusEnum.CANCELLED }),
+
+            // Lost Items
+            this.lostItemRepo.countDocuments(),
+            this.lostItemRepo.countDocuments({ status: lostItemStatusEnum.PENDING }),
+            this.lostItemRepo.countDocuments({ status: lostItemStatusEnum.FOUND })
+
+        ]);
+
+        return res.json(successResponse("System statistics fetched successfully", 200, {
+            users: {
+                total: totalUsers,
+                active: activeUsers,
+                blocked: blockedUsers
+            },
+            trips: {
+                total: totalTrips,
+                active: activeTrips,
+                completed: completedTrips,
+                cancelled: cancelledTrips
+            },
+            lostItems: {
+                total: totalLostItems,
+                pending: pendingLostItems,
+                resolved: resolvedLostItems
+            }
+        }));
+    };
+    changeUserRole = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+        const { role } = req.body;
+
+        const currentAdmin = req.loggedInUser!.user;
+        if (currentAdmin._id.toString() === id) {
+            throw new badRequestException("You cannot change your own role");
+        }
+
+        if (!Object.values(roleEnum).includes(role)) {
+            throw new badRequestException("Invalid role");
+        }
+
+        const user = await this.userRepo.findDocumentById(id);
+        if (!user) throw new badRequestException("User not found");
+        if (user.role === role) {
+            throw new badRequestException(`User is already ${role}`);
+        }
+        if (user.status === statusUserEnum.BLOCKED) {
+            throw new badRequestException("Blocked user role cannot be changed");
+        }
+
+        const updatedUser = await this.userRepo.findDocumentByIdAndUpdate(
+            id,
+            { role },
+            { new: true }
+        );
+        return res.json(successResponse("User role updated successfully", 200, updatedUser));
+    };
+    changeUserStatus = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+        if (req.loggedInUser!.user._id.toString() === id) {
+            throw new badRequestException("You cannot delete your own account");
+        }
+        const { status } = req.body;
+
+        if (!Object.values(statusUserEnum).includes(status)) {
+            throw new badRequestException("Invalid status");
+        }
+
+        const user = await this.userRepo.findDocumentById(id);
+        if (!user) throw new badRequestException("User not found");
+        if (user.role === roleEnum.ADMIN) {
+            throw new badRequestException("Admin status cannot be changed");
+        }
+        if (user.status === status) throw new badRequestException(`User is already ${status}`);
+
+        const updatedUser = await this.userRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                status
+            },
+            {
+                new: true
+            }
+        );
+        return res.json(successResponse("User status updated successfully", 200, updatedUser));
+    };
+    deleteUser = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+        if (req.loggedInUser!.user._id.toString() === id) {
+            throw new badRequestException("You cannot delete your own account");
+        }
+
+        const user = await this.userRepo.findDocumentById(id);
+        if (!user) throw new badRequestException("User not found");
+        if (user.role === roleEnum.ADMIN) {
+            throw new badRequestException("Admin account cannot be deleted");
+        }
+
+        if (user.profileImage?.public_id) {
+            await deleteFileFromCloudinary(user.profileImage.public_id);
+        }
+        await this.userRepo.deleteById(id);
+
+        return res.json(successResponse("User deleted successfully", 200));
     };
 
 
