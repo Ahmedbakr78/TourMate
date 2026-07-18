@@ -2,17 +2,21 @@ import mongoose from 'mongoose';
 
 const { Schema } = mongoose;
 
+// Aligned to Jamal's canonical Notification schema: senderId, receiverId,
+// title, message, isRead. Ahmed-only `type` retained as an optional extra.
 const notificationSchema = new Schema(
   {
-    recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    senderId: { type: Schema.Types.ObjectId, ref: 'User' },
+    receiverId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    title: { type: String, required: true },
+    message: { type: String, required: true },
+    isRead: { type: Boolean, default: false },
+    // Ahmed-only extension.
     type: {
       type: String,
       enum: ['trip', 'system', 'review', 'lostItem', 'general'],
       default: 'general',
     },
-    title: { type: String, required: true },
-    message: { type: String, required: true },
-    read: { type: Boolean, default: false },
     data: { type: Schema.Types.Mixed },
   },
   { timestamps: true }

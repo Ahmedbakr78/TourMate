@@ -14,6 +14,9 @@ const env = {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev-refresh-secret',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+    // Alternate secret (e.g. Jamal's auth service) so Ahmed's API can verify
+    // tokens issued by the other backend and the frontends can share one login.
+    altSecret: process.env.JWT_SECRET_ALT || '',
   },
   corsOrigin: (process.env.CORS_ORIGIN || 'http://localhost:4200')
     .split(',')

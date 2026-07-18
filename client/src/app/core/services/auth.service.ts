@@ -67,7 +67,9 @@ export class AuthService {
 
   hasRole(...roles: Role[]): boolean {
     const u = this.currentUserSubject.value;
-    return !!u && roles.includes(u.role);
+    return (
+      !!u && roles.map((r) => r.toUpperCase()).includes(u.role.toUpperCase())
+    );
   }
 
   logout() {

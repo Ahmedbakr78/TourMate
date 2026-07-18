@@ -20,10 +20,8 @@ export const createGuide = asyncHandler(async (req, res) => {
   });
 
   const guide = await Guide.create({
-    user: user._id,
+    userId: user._id,
     languages: languages || [],
-    specialties: specialties || [],
-    bio,
   });
 
   res.status(201).json({ status: 'success', data: { guide, user: user.toSafeJSON() } });
@@ -38,7 +36,11 @@ export const getGuide = asyncHandler(async (req, res) => {
 export const getAllGuides = asyncHandler(async (req, res) => {
   const { availability, page = 1, limit = 20 } = req.query;
   const filter = {};
-  if (availability) filter.availability = availability;
+  if (availability !== undefined) {
+    const map = { available: true, busy: true, offline: false };
+    filter.availability =
+      typeof availability === 'string' ? (availability in map ? map[availability] : true) : availability;
+  }
 
   const guides = await Guide.find(filter)
     .populate('user', '-password')
@@ -102,17 +104,17 @@ export const uploadCertificate = asyncHandler(async (req, res) => {
   const guide = await Guide.findById(req.params.id);
   if (!guide) throw new ApiError(httpStatus.NOT_FOUND, 'Guide not found');
   const url = publicUrl(req, req.file.filename);
-  guide.certificateUrls.push(url);
+  guide.certificate = url;
   await guide.save();
-  res.status(201).json({ status: 'success', data: { url, certificateUrls: guide.certificateUrls } });
+  res.status(201).json({ status: 'success', data: { url, certificate: guide.certificate } });
 });
 
 export const deleteCertificate = asyncHandler(async (req, res) => {
   const { url } = req.body;
   const guide = await Guide.findById(req.params.id);
   if (!guide) throw new ApiError(httpStatus.NOT_FOUND, 'Guide not found');
-  guide.certificateUrls = guide.certificateUrls.filter((c) => c !== url);
+  guide.certificate = null;
   deleteFile(url);
   await guide.save();
-  res.json({ status: 'success', data: { certificateUrls: guide.certificateUrls } });
+  res.json({ status: 'success', data: { certificate: guide.certificate } });
 });

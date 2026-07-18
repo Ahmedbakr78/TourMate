@@ -8,7 +8,14 @@ export const createVehicle = asyncHandler(async (req, res) => {
   const driver = await Driver.findById(req.body.driver);
   if (!driver) throw new ApiError(httpStatus.NOT_FOUND, 'Driver not found');
 
-  const vehicle = await Vehicle.create(req.body);
+  const { driver: driverId, type, model, brand, vehicleModel, capacity, plateNumber } = req.body;
+  const vehicle = await Vehicle.create({
+    driverId,
+    brand: brand || type,
+    vehicleModel: vehicleModel || model,
+    capacity,
+    plateNumber,
+  });
   driver.vehicleIds.push(vehicle._id);
   await driver.save();
 
@@ -45,13 +52,13 @@ export const updateVehicle = asyncHandler(async (req, res) => {
 export const deleteVehicle = asyncHandler(async (req, res) => {
   const vehicle = await Vehicle.findByIdAndDelete(req.params.id);
   if (!vehicle) throw new ApiError(httpStatus.NOT_FOUND, 'Vehicle not found');
-  await Driver.updateOne({ _id: vehicle.driver }, { $pull: { vehicleIds: vehicle._id } });
-  vehicle.images.forEach((img) => deleteFile(img));
+  await Driver.updateOne({ _id: vehicle.driverId }, { $pull: { vehicleIds: vehicle._id } });
+  vehicle.carImages.forEach((img) => deleteFile(img.secure_url));
   res.json({ status: 'success', message: 'Vehicle deleted' });
 });
 
 export const getDriverVehicles = asyncHandler(async (req, res) => {
-  const vehicles = await Vehicle.find({ driver: req.params.driverId });
+  const vehicles = await Vehicle.find({ driverId: req.params.driverId });
   res.json({ status: 'success', data: vehicles });
 });
 
@@ -60,17 +67,17 @@ export const uploadVehicleImage = asyncHandler(async (req, res) => {
   const vehicle = await Vehicle.findById(req.params.id);
   if (!vehicle) throw new ApiError(httpStatus.NOT_FOUND, 'Vehicle not found');
   const url = publicUrl(req, req.file.filename);
-  vehicle.images.push(url);
+  vehicle.carImages.push({ secure_url: url, public_id: req.file.filename });
   await vehicle.save();
-  res.status(201).json({ status: 'success', data: { url, images: vehicle.images } });
+  res.status(201).json({ status: 'success', data: { url, images: vehicle.carImages } });
 });
 
 export const deleteVehicleImage = asyncHandler(async (req, res) => {
   const { url } = req.body;
   const vehicle = await Vehicle.findById(req.params.id);
   if (!vehicle) throw new ApiError(httpStatus.NOT_FOUND, 'Vehicle not found');
-  vehicle.images = vehicle.images.filter((i) => i !== url);
+  vehicle.carImages = vehicle.carImages.filter((i) => i.secure_url !== url);
   deleteFile(url);
   await vehicle.save();
-  res.json({ status: 'success', data: { images: vehicle.images } });
+  res.json({ status: 'success', data: { images: vehicle.carImages } });
 });

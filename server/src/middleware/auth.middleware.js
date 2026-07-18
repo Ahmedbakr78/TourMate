@@ -15,7 +15,14 @@ export function signRefreshToken(payload) {
 }
 
 export function verifyToken(token) {
-  return jwt.verify(token, env.jwt.secret);
+  try {
+    return jwt.verify(token, env.jwt.secret);
+  } catch (err) {
+    if (env.jwt.altSecret) {
+      return jwt.verify(token, env.jwt.altSecret);
+    }
+    throw err;
+  }
 }
 
 export function verifyRefreshToken(token) {
