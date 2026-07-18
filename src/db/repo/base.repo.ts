@@ -1,8 +1,11 @@
-import mongoose, { DeleteResult, FilterQuery, Model, ProjectionType, QueryOptions, Types, UpdateQuery, UpdateResult } from "mongoose";
+import mongoose, {
+    DeleteResult, FilterQuery, Model, PaginateOptions, PaginateResult, ProjectionType, QueryOptions, Types, UpdateQuery, UpdateResult,
+} from "mongoose";
+import { PaginateModel } from "mongoose";
 
 export abstract class baseRepository<T> {
 
-    constructor(private model: Model<T>) { }
+    constructor(private model: Model<T> & PaginateModel<T>) { }
 
     async createNewDocument(document: Partial<T>): Promise<T> {
         return await this.model.create(document);
@@ -74,4 +77,12 @@ export abstract class baseRepository<T> {
     async insertMany(documents: Partial<T>[]) {
         return await this.model.insertMany(documents);
     }
+    async paginateModel(
+        query: FilterQuery<T>,
+        options: PaginateOptions
+    ): Promise<PaginateResult<T>> {
+
+        return await this.model.paginate(query, options);
+    }
+
 }

@@ -1,6 +1,7 @@
 import { Document, Types } from "mongoose";
 import { genderEnum, lostItemStatusEnum, otpTypesEnum, roleEnum, statusUserEnum, tripStatusEnum, verificationStatusEnum, voteValueEnum } from "../enums/user.enum.js";
 import { Request } from "express";
+import { JwtPayload } from "jsonwebtoken";
 
 
 interface IOtp {
@@ -126,12 +127,10 @@ interface IBlackListedTokens extends Document<Types.ObjectId> {
     expiresAt: Date
 }
 
-interface ITokenPayload {
+interface ITokenPayload extends JwtPayload {
     _id: string;
     role: roleEnum;
-    jti: string;
-    iat?: number;
-    exp?: number;
+    jti?: string;
 }
 interface IRequest extends Request {
     loggedInUser?: {

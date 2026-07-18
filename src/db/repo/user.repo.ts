@@ -1,9 +1,11 @@
-import { Model } from "mongoose";
+import { PaginateModel } from "mongoose";
 import { IUser } from "../../common/index.js";
 import { baseRepository } from "./base.repo.js";
 
 export class userRepository extends baseRepository<IUser> {
-    constructor(protected _userModel: Model<IUser>) {
+
+    constructor(protected _userModel: PaginateModel<IUser>) {
         super(_userModel);
     }
+
 }

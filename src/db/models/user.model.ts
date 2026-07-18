@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { PaginateModel } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 import { genderEnum, IUser, otpTypesEnum, roleEnum, statusUserEnum } from "../../common/index.js";
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -52,7 +53,7 @@ const userSchema = new mongoose.Schema<IUser>(
         otps: [{
             value: { type: String, required: true },
             expiredAt: { type: Date, default: () => Date.now() + 600000 },
-            otpType: { type: String, enum: otpTypesEnum, required: true }
+            otpType: { type: String, enum: otpTypesEnum, required: true },
         }],
         isVerified: {
             type: Boolean,
@@ -63,6 +64,7 @@ const userSchema = new mongoose.Schema<IUser>(
         timestamps: true
     }
 );
+userSchema.plugin(mongoosePaginate);
 
-export const userModel = mongoose.model<IUser>("User", userSchema);
+export const userModel = mongoose.model<IUser, PaginateModel<IUser>>("User", userSchema);
 

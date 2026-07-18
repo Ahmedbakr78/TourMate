@@ -1,4 +1,4 @@
-import { IFailuresResponse, ISuccessResponse } from "../../common/index.js";
+import { IFailuresResponse, ISuccessResponse, IUser } from "../../common/index.js";
 
 export function successResponse<T = unknown>(
     message = 'Your Request is processed successfully',
