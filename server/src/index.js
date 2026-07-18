@@ -42,13 +42,14 @@ app.use('/api/admin', adminRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-const start = async () => {
-  await connectDB();
-  app.listen(env.port, () => {
-    console.log(`[server] TourMate API listening on port ${env.port} (${env.nodeEnv})`);
-  });
-};
-
-start();
+if (!process.env.VERCEL) {
+  const start = async () => {
+    await connectDB();
+    app.listen(env.port, () => {
+      console.log(`[server] TourMate API listening on port ${env.port} (${env.nodeEnv})`);
+    });
+  };
+  start();
+}
 
 export default app;
