@@ -3,6 +3,11 @@ node_modules/
 client/node_modules/
 server/node_modules/
 
+# Package lock
+package-lock.json
+server/package-lock.json
+client/package-lock.json
+
 # Build output
 dist/
 client/dist/
