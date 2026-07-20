@@ -19,6 +19,7 @@ const lostItemSchema = new Schema(
     location: { type: locationSchema },
     found: { type: Boolean, default: false },
     foundBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    tripId: { type: Schema.Types.ObjectId, ref: 'Trip' },
   },
   { timestamps: true }
 );

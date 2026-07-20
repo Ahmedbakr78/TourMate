@@ -16,6 +16,8 @@ const locationSchema = new Schema(
 const tripSchema = new Schema(
   {
     touristId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    name: { type: String, default: 'My Trip' },
+    description: { type: String },
     places: [{ type: Schema.Types.ObjectId, ref: 'Place' }],
     guideId: { type: Schema.Types.ObjectId, ref: 'Guide' },
     driverId: { type: Schema.Types.ObjectId, ref: 'Driver' },
@@ -36,6 +38,7 @@ const tripSchema = new Schema(
     distanceMeters: { type: Number },
     durationSeconds: { type: Number },
     fare: { type: Number },
+    isShared: { type: Boolean, default: false },
     startTime: { type: Date },
     endTime: { type: Date },
   },
