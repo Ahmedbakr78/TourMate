@@ -14,10 +14,17 @@ export const pushLocation = asyncHandler(async (req, res) => {
   const { lng, lat, heading, speed, tripId } = req.body;
   if (!lng || !lat) throw new ApiError(httpStatus.BAD_REQUEST, 'lng and lat required');
 
-  const driver = await Driver.findById(driverId);
+  const userDriver = await Driver.findOne({ userId: req.user.id || req.user._id });
+  if (!userDriver) throw new ApiError(httpStatus.FORBIDDEN, 'No driver profile found for this user');
+  if (driverId !== 'my' && driverId !== userDriver._id.toString()) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'You can only push your own location');
+  }
+  const actualDriverId = userDriver._id.toString();
+
+  const driver = await Driver.findById(actualDriverId);
   if (!driver) throw new ApiError(httpStatus.NOT_FOUND, 'Driver not found');
 
-  const loc = updateDriverLocation(driverId, [Number(lng), Number(lat)], {
+  const loc = updateDriverLocation(actualDriverId, [Number(lng), Number(lat)], {
     heading,
     speed,
     tripId,
