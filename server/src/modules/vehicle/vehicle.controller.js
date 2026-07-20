@@ -29,9 +29,8 @@ export const getVehicle = asyncHandler(async (req, res) => {
 });
 
 export const getAllVehicles = asyncHandler(async (req, res) => {
-  const { type, isActive, page = 1, limit = 20 } = req.query;
+  const { isActive, page = 1, limit = 20 } = req.query;
   const filter = {};
-  if (type) filter.type = type;
   if (isActive !== undefined) filter.isActive = isActive === 'true';
 
   const vehicles = await Vehicle.find(filter)
