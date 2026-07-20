@@ -51,6 +51,46 @@ architecture (middleware → services → controllers → routes). The frontend 
 standalone-component SPA. External intelligence (POIs, routing) is proxied server-side with
 caching. Live tracking uses **polling** (no WebSockets) for simplicity and firewall resilience.
 
+### Folder structure
+
+```
+TourMate/
+├── client/                 # Angular 17+ standalone SPA
+│   ├── src/app/
+│   │   ├── admin/          # Admin features (dashboard, user/guide/driver/vehicle mgmt)
+│   │   ├── auth/           # Login, register, password flows
+│   │   ├── driver-app/     # Driver features
+│   │   ├── guide-app/      # Guide features
+│   │   ├── trip/           # Trip list/new/detail/calendar/shared
+│   │   ├── place/          # POI list & detail
+│   │   ├── layout/         # App shell (sidebar + content)
+│   │   ├── shared/         # Shared UI (icon, modal, breadcrumb, …)
+│   │   ├── core/           # Services, guards, store
+│   │   └── app.routes.ts   # Lazy-loaded route definitions
+│   ├── Dockerfile
+│   └── nginx.conf          # SPA + /api reverse proxy
+├── server/                 # Node/Express REST API
+│   ├── src/
+│   │   ├── modules/        # Feature modules (auth, guide, driver, vehicle, trip, …)
+│   │   ├── middlewares/    # auth, rbac, error, upload
+│   │   ├── config/         # env, db
+│   │   ├── docs/swagger.js # OpenAPI 3 spec
+│   │   └── index.js        # App entrypoint (/api-docs mounted here)
+│   ├── .env.example
+│   └── Dockerfile
+└── docker-compose.yml      # mongo + server + client
+```
+
+### Default ports
+
+| Service | Port | Notes |
+|---------|------|-------|
+| API server | `4000` | Base URL `http://localhost:4000/api` |
+| Angular dev server | `4200` | `npx ng serve` |
+| Mongo (native) | `27017` | |
+| Client (Docker) | `80` | served by nginx |
+| API docs | `4000` | Swagger UI at `/api-docs` |
+
 ---
 
 ## Team Roles
@@ -121,6 +161,11 @@ graph TD
 ### Auth flow
 Clients authenticate via Jamal's auth endpoints; the issued JWT is attached by the Angular
 `authInterceptor` and validated by `authenticate` middleware. `authorize(role)` enforces RBAC.
+
+### Data store (in-memory / MongoDB)
+Persistence uses **MongoDB** via **Mongoose**. For development and automated tests the server can
+spin up an **in-memory MongoDB** using `mongodb-memory-server`, so no external database is
+required to run locally. In production (and via Docker Compose) a real `mongo:6` instance is used.
 
 ### Polling-based tracking (no WebSockets)
 Drivers `POST /api/tracking/driver/:id/location`; clients `GET /api/tracking/active-trips`
@@ -205,15 +250,17 @@ Copy `server/.env.example` to `server/.env` and adjust:
 ```bash
 cd server
 npm install
-cp .env.example .env
-npm run dev          # http://localhost:4000  (health: /health)
+cp .env.example .env   # adjust values (see Environment Configuration)
+npm start              # node src/index.js  → http://localhost:4000  (health: /health)
+# or for hot-reload during development:
+npm run dev
 ```
 
 ### Frontend
 ```bash
 cd client
 npm install
-ng serve             # http://localhost:4200
+npx ng serve          # http://localhost:4200
 ```
 
 The client points at `http://localhost:4000/api` (edit
@@ -226,6 +273,27 @@ The client points at `http://localhost:4000/api` (edit
 A GitHub Actions workflow installs, lints, and builds both `server` and `client` on every push
 and pull request. See the pipeline summary in [`README`](#continuous-integration) and the
 workflow referenced from `.github/workflows/ci.yml`.
+
+---
+
+## Docker
+
+A full stack can be run with Docker Compose (Mongo + API + client served by nginx):
+
+```bash
+# from repo root
+docker-compose up --build
+```
+
+- API available at `http://localhost:4000/api` (docs at `http://localhost:4000/api-docs`).
+- Client served by nginx at `http://localhost`.
+- The `client/nginx.conf` proxies `/api` (and `/api-docs`) to the `server` container and
+  falls back to `index.html` for the SPA.
+- Mongo is provided by the `mongo:6` service; `MONGO_URI` is wired to
+  `mongodb://mongo:27017/tourmate`.
+
+> Environment variables for the server can be overridden via a `.env` file at the repo root
+> (consumed by Compose) — see `server/.env.example` for the available keys.
 
 ---
 

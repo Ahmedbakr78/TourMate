@@ -1,0 +1,52 @@
+services:
+  mongo:
+    image: mongo:6
+    container_name: tourmate-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - tourmate-net
+    restart: unless-stopped
+
+  server:
+    build: ./server
+    container_name: tourmate-server
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MONGODB_URI: mongodb://mongo:27017/tourmate
+      CORS_ORIGIN: http://localhost,http://localhost:80
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh-secret}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+      OVERPASS_URL: https://overpass-api.de/api/interpreter
+      ORS_API_KEY: ${ORS_API_KEY:-}
+      UPLOAD_DIR: ./uploads
+    depends_on:
+      - mongo
+    networks:
+      - tourmate-net
+    restart: unless-stopped
+
+  client:
+    build: ./client
+    container_name: tourmate-client
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - tourmate-net
+    restart: unless-stopped
+
+networks:
+  tourmate-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
