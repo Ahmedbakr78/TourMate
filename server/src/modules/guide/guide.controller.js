@@ -6,7 +6,8 @@ import { hashPassword } from '../../utils/password.js';
 import { publicUrl, deleteFile } from '../../middlewares/upload.middleware.js';
 
 export const createGuide = asyncHandler(async (req, res) => {
-  const { name, email, password, phone, languages, specialties, bio } = req.body;
+  const { name, email, password, phone: rawPhone, languages } = req.body;
+  const phone = rawPhone || `+000-${Date.now()}`;
 
   const existing = await User.findOne({ email });
   if (existing) throw new ApiError(httpStatus.CONFLICT, 'Email already registered');
@@ -16,7 +17,7 @@ export const createGuide = asyncHandler(async (req, res) => {
     email,
     password: await hashPassword(password || 'TourMate@123'),
     phone,
-    role: 'guide',
+    role: 'GUIDE',
   });
 
   const guide = await Guide.create({
@@ -28,7 +29,7 @@ export const createGuide = asyncHandler(async (req, res) => {
 });
 
 export const getGuide = asyncHandler(async (req, res) => {
-  const guide = await Guide.findById(req.params.id).populate('user', '-password');
+  const guide = await Guide.findById(req.params.id).populate('userId', '-password');
   if (!guide) throw new ApiError(httpStatus.NOT_FOUND, 'Guide not found');
   res.json({ status: 'success', data: guide });
 });
@@ -43,7 +44,7 @@ export const getAllGuides = asyncHandler(async (req, res) => {
   }
 
   const guides = await Guide.find(filter)
-    .populate('user', '-password')
+    .populate('userId', '-password')
     .skip((page - 1) * limit)
     .limit(Number(limit));
 
@@ -54,7 +55,7 @@ export const updateGuide = asyncHandler(async (req, res) => {
   const guide = await Guide.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true,
-  }).populate('user', '-password');
+  }).populate('userId', '-password');
   if (!guide) throw new ApiError(httpStatus.NOT_FOUND, 'Guide not found');
   res.json({ status: 'success', data: guide });
 });
@@ -62,7 +63,7 @@ export const updateGuide = asyncHandler(async (req, res) => {
 export const deleteGuide = asyncHandler(async (req, res) => {
   const guide = await Guide.findByIdAndDelete(req.params.id);
   if (!guide) throw new ApiError(httpStatus.NOT_FOUND, 'Guide not found');
-  await User.findByIdAndDelete(guide.user);
+  await User.findByIdAndDelete(guide.userId);
   res.json({ status: 'success', message: 'Guide deleted' });
 });
 
@@ -70,10 +71,10 @@ export const searchGuides = asyncHandler(async (req, res) => {
   const { q, language, specialty, lat, lng, radius = 5000 } = req.query;
   const filter = {};
   if (language) filter.languages = language;
-  if (specialty) filter.specialties = specialty;
+  if (specialty) filter.languages = specialty;
 
-  let query = Guide.find(filter).populate('user', '-password');
-  if (q) query = query.where('bio').regex(new RegExp(q, 'i'));
+  let query = Guide.find(filter).populate('userId', '-password');
+  if (q) query = query.where('languages').regex(new RegExp(q, 'i'));
 
   if (lat && lng) {
     query = query.where('currentLocation').near({
@@ -86,15 +87,29 @@ export const searchGuides = asyncHandler(async (req, res) => {
 });
 
 export const updateAvailability = asyncHandler(async (req, res) => {
-  const { availability } = req.body;
-  if (!['available', 'busy', 'offline'].includes(availability)) {
-    throw new ApiError(httpStatus.UNPROCESSABLE, 'Invalid availability value');
+  let { availability } = req.body;
+  if (typeof availability === 'string') {
+    const map = { available: true, busy: true, offline: false };
+    if (!(availability in map)) {
+      throw new ApiError(httpStatus.UNPROCESSABLE, 'Invalid availability value');
+    }
+    availability = map[availability];
   }
-  const guide = await Guide.findByIdAndUpdate(
+  if (typeof availability !== 'boolean') {
+    throw new ApiError(httpStatus.UNPROCESSABLE, 'Availability must be a boolean or valid string');
+  }
+  let guide = await Guide.findByIdAndUpdate(
     req.params.id,
     { availability, lastSeen: new Date() },
     { new: true }
   );
+  if (!guide) {
+    guide = await Guide.findOneAndUpdate(
+      { userId: req.params.id },
+      { availability, lastSeen: new Date() },
+      { new: true }
+    );
+  }
   if (!guide) throw new ApiError(httpStatus.NOT_FOUND, 'Guide not found');
   res.json({ status: 'success', data: guide });
 });
@@ -106,7 +121,7 @@ export const uploadCertificate = asyncHandler(async (req, res) => {
   const url = publicUrl(req, req.file.filename);
   guide.certificate = url;
   await guide.save();
-  res.status(201).json({ status: 'success', data: { url, certificate: guide.certificate } });
+  res.json({ status: 'success', data: { url, certificate: guide.certificate } });
 });
 
 export const deleteCertificate = asyncHandler(async (req, res) => {
