@@ -1,0 +1,7 @@
+# Use this workspace to collaborate
+workspace:
+  id: 82247b4a-6c47-4244-82bb-0dca268ca0e9
+
+localResources:
+  collections:
+    - ../TourMate.postman_collection.json

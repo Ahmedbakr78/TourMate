@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "TourMate API",
+    "description": "Full API collection for TourMate - MEAN Stack Tourism Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login as Admin",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "pm.collectionVariables.set('token', jsonData.data.token);"], "type": "text/javascript" } }],
+          "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"email\":\"admin@tourmate.com\",\"password\":\"Admin123!\"}"}, "url": {"raw": "http://localhost:4000/api/auth/login", "host": ["http://localhost:4000"], "path": ["api", "auth", "login"]} }
+        },
+        {
+          "name": "Login as Tourist",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "pm.collectionVariables.set('token', jsonData.data.token);"], "type": "text/javascript" } }],
+          "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"email\":\"tourist@tourmate.com\",\"password\":\"Tourist123!\"}"}, "url": {"raw": "http://localhost:4000/api/auth/login", "host": ["http://localhost:4000"], "path": ["api", "auth", "login"]} }
+        },
+        {
+          "name": "Login as Driver",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "pm.collectionVariables.set('token', jsonData.data.token);"], "type": "text/javascript" } }],
+          "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"email\":\"driver@tourmate.com\",\"password\":\"Driver123!\"}"}, "url": {"raw": "http://localhost:4000/api/auth/login", "host": ["http://localhost:4000"], "path": ["api", "auth", "login"]} }
+        },
+        {
+          "name": "Login as Guide",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "pm.collectionVariables.set('token', jsonData.data.token);"], "type": "text/javascript" } }],
+          "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"email\":\"guide@tourmate.com\",\"password\":\"Guide123!\"}"}, "url": {"raw": "http://localhost:4000/api/auth/login", "host": ["http://localhost:4000"], "path": ["api", "auth", "login"]} }
+        },
+        { "name": "Register", "request": { "method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"name\":\"New User\",\"email\":\"new@test.com\",\"password\":\"Test123!\",\"role\":\"tourist\"}"}, "url": {"raw": "http://localhost:4000/api/auth/register", "host": ["http://localhost:4000"], "path": ["api", "auth", "register"]} } },
+        { "name": "Get Profile", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/auth/profile", "host": ["http://localhost:4000"], "path": ["api", "auth", "profile"]} } }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        { "name": "Get Stats", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/admin/stats", "host": ["http://localhost:4000"], "path": ["api", "admin", "stats"]} } },
+        { "name": "Get All Users", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/admin/users", "host": ["http://localhost:4000"], "path": ["api", "admin", "users"]} } },
+        { "name": "Block User", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{}"}, "url": {"raw": "http://localhost:4000/api/admin/users/USER_ID/block", "host": ["http://localhost:4000"], "path": ["api", "admin", "users", ":id", "block"], "variable": [{"key": "id", "value": "USER_ID"}]} } },
+        { "name": "Unblock User", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{}"}, "url": {"raw": "http://localhost:4000/api/admin/users/USER_ID/unblock", "host": ["http://localhost:4000"], "path": ["api", "admin", "users", ":id", "unblock"], "variable": [{"key": "id", "value": "USER_ID"}]} } }
+      ]
+    },
+    {
+      "name": "Places",
+      "item": [
+        { "name": "Get All Places", "request": { "method": "GET", "url": {"raw": "http://localhost:4000/api/places", "host": ["http://localhost:4000"], "path": ["api", "places"]} } },
+        { "name": "Search Places", "request": { "method": "GET", "url": {"raw": "http://localhost:4000/api/places/search?q=Cairo", "host": ["http://localhost:4000"], "path": ["api", "places", "search"], "query": [{"key": "q", "value": "Cairo"}]} } },
+        { "name": "Nearby Places", "request": { "method": "GET", "url": {"raw": "http://localhost:4000/api/places/nearby?lat=30.04&lng=31.23&radius=5000", "host": ["http://localhost:4000"], "path": ["api", "places", "nearby"], "query": [{"key": "lat", "value": "30.04"}, {"key": "lng", "value": "31.23"}, {"key": "radius", "value": "5000"}]} } },
+        { "name": "Popular Places", "request": { "method": "GET", "url": {"raw": "http://localhost:4000/api/places/popular", "host": ["http://localhost:4000"], "path": ["api", "places", "popular"]} } }
+      ]
+    },
+    {
+      "name": "Trips",
+      "item": [
+        { "name": "Get My Trips", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/trips/my", "host": ["http://localhost:4000"], "path": ["api", "trips", "my"]} } },
+        { "name": "Create Trip", "request": { "method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"places\":[\"PLACE_ID_1\",\"PLACE_ID_2\"],\"startDate\":\"2026-08-15T09:00:00Z\",\"endDate\":\"2026-08-15T18:00:00Z\",\"peopleCount\":2}"}, "url": {"raw": "http://localhost:4000/api/trips", "host": ["http://localhost:4000"], "path": ["api", "trips"]} } },
+        { "name": "Calculate Trip Price", "request": { "method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"places\":[],\"startDate\":\"2026-08-15T09:00:00Z\",\"endDate\":\"2026-08-15T18:00:00Z\",\"peopleCount\":2}"}, "url": {"raw": "http://localhost:4000/api/trips/calculate-price", "host": ["http://localhost:4000"], "path": ["api", "trips", "calculate-price"]} } },
+        { "name": "Start Trip", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{}"}, "url": {"raw": "http://localhost:4000/api/trips/TRIP_ID/start", "host": ["http://localhost:4000"], "path": ["api", "trips", ":id", "start"], "variable": [{"key": "id", "value": "TRIP_ID"}]} } },
+        { "name": "Complete Trip", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{}"}, "url": {"raw": "http://localhost:4000/api/trips/TRIP_ID/complete", "host": ["http://localhost:4000"], "path": ["api", "trips", ":id", "complete"], "variable": [{"key": "id", "value": "TRIP_ID"}]} } },
+        { "name": "Cancel Trip", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{}"}, "url": {"raw": "http://localhost:4000/api/trips/TRIP_ID/cancel", "host": ["http://localhost:4000"], "path": ["api", "trips", ":id", "cancel"], "variable": [{"key": "id", "value": "TRIP_ID"}]} } },
+        { "name": "Assign Guide", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"guideId\":\"GUIDE_ID\"}"}, "url": {"raw": "http://localhost:4000/api/trips/TRIP_ID/assign-guide", "host": ["http://localhost:4000"], "path": ["api", "trips", ":id", "assign-guide"], "variable": [{"key": "id", "value": "TRIP_ID"}]} } },
+        { "name": "Assign Driver", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"driverId\":\"DRIVER_ID\"}"}, "url": {"raw": "http://localhost:4000/api/trips/TRIP_ID/assign-driver", "host": ["http://localhost:4000"], "path": ["api", "trips", ":id", "assign-driver"], "variable": [{"key": "id", "value": "TRIP_ID"}]} } }
+      ]
+    },
+    {
+      "name": "Drivers & Guides",
+      "item": [
+        { "name": "Get All Drivers", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/drivers", "host": ["http://localhost:4000"], "path": ["api", "drivers"]} } },
+        { "name": "Get All Guides", "request": { "method": "GET", "url": {"raw": "http://localhost:4000/api/guides", "host": ["http://localhost:4000"], "path": ["api", "guides"]} } },
+        { "name": "Update Driver Availability", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"availability\":\"available\"}"}, "url": {"raw": "http://localhost:4000/api/drivers/DRIVER_ID/availability", "host": ["http://localhost:4000"], "path": ["api", "drivers", ":id", "availability"], "variable": [{"key": "id", "value": "DRIVER_ID"}]} } },
+        { "name": "Update Guide Availability", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"availability\":\"available\"}"}, "url": {"raw": "http://localhost:4000/api/guides/GUIDE_ID/availability", "host": ["http://localhost:4000"], "path": ["api", "guides", ":id", "availability"], "variable": [{"key": "id", "value": "GUIDE_ID"}]} } }
+      ]
+    },
+    {
+      "name": "Vehicles",
+      "item": [
+        { "name": "Get All Vehicles", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/vehicles", "host": ["http://localhost:4000"], "path": ["api", "vehicles"]} } },
+        { "name": "Get Driver Vehicles", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/vehicles/driver/DRIVER_ID", "host": ["http://localhost:4000"], "path": ["api", "vehicles", "driver", ":driverId"], "variable": [{"key": "driverId", "value": "DRIVER_ID"}]} } }
+      ]
+    },
+    {
+      "name": "Reviews & Votes",
+      "item": [
+        { "name": "Create Review", "request": { "method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"tripId\":\"TRIP_ID\",\"rating\":5,\"comment\":\"Amazing trip!\"}"}, "url": {"raw": "http://localhost:4000/api/reviews", "host": ["http://localhost:4000"], "path": ["api", "reviews"]} } },
+        { "name": "Get Trip Reviews", "request": { "method": "GET", "url": {"raw": "http://localhost:4000/api/reviews/trip/TRIP_ID", "host": ["http://localhost:4000"], "path": ["api", "reviews", "trip", ":tripId"], "variable": [{"key": "tripId", "value": "TRIP_ID"}]} } },
+        { "name": "Create Vote", "request": { "method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"tripId\":\"TRIP_ID\",\"placeId\":\"PLACE_ID\",\"voteValue\":\"UP\"}"}, "url": {"raw": "http://localhost:4000/api/votes", "host": ["http://localhost:4000"], "path": ["api", "votes"]} } },
+        { "name": "Get Place Votes", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/votes/place/PLACE_ID", "host": ["http://localhost:4000"], "path": ["api", "votes", "place", ":placeId"], "variable": [{"key": "placeId", "value": "PLACE_ID"}]} } }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        { "name": "Get My Notifications", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/notifications", "host": ["http://localhost:4000"], "path": ["api", "notifications"]} } },
+        { "name": "Unread Count", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/notifications/unread-count", "host": ["http://localhost:4000"], "path": ["api", "notifications", "unread-count"]} } },
+        { "name": "Mark All Read", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{}"}, "url": {"raw": "http://localhost:4000/api/notifications/read-all", "host": ["http://localhost:4000"], "path": ["api", "notifications", "read-all"]} } }
+      ]
+    },
+    {
+      "name": "Lost & Found",
+      "item": [
+        { "name": "Report Lost Item", "request": { "method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"title\":\"Lost Phone\",\"description\":\"Samsung Galaxy S24, black case\"}"}, "url": {"raw": "http://localhost:4000/api/lost-items", "host": ["http://localhost:4000"], "path": ["api", "lost-items"]} } },
+        { "name": "Get My Lost Items", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/lost-items/my", "host": ["http://localhost:4000"], "path": ["api", "lost-items", "my"]} } },
+        { "name": "Report Found", "request": { "method": "PATCH", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{}"}, "url": {"raw": "http://localhost:4000/api/lost-items/ITEM_ID/report-found", "host": ["http://localhost:4000"], "path": ["api", "lost-items", ":id", "report-found"], "variable": [{"key": "id", "value": "ITEM_ID"}]} } }
+      ]
+    },
+    {
+      "name": "Tracking & External",
+      "item": [
+        { "name": "Push Driver Location", "request": { "method": "POST", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"lng\":31.23,\"lat\":30.04,\"tripId\":\"TRIP_ID\"}"}, "url": {"raw": "http://localhost:4000/api/tracking/driver/DRIVER_ID/location", "host": ["http://localhost:4000"], "path": ["api", "tracking", "driver", ":driverId", "location"], "variable": [{"key": "driverId", "value": "DRIVER_ID"}]} } },
+        { "name": "Poll Active Trips", "request": { "method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": {"raw": "http://localhost:4000/api/tracking/active-trips", "host": ["http://localhost:4000"], "path": ["api", "tracking", "active-trips"]} } },
+        { "name": "Get POIs (External)", "request": { "method": "GET", "url": {"raw": "http://localhost:4000/api/external/pois?lat=30.04&lng=31.23&radius=1000", "host": ["http://localhost:4000"], "path": ["api", "external", "pois"], "query": [{"key": "lat", "value": "30.04"}, {"key": "lng", "value": "31.23"}, {"key": "radius", "value": "1000"}]} } },
+        { "name": "Get Route", "request": { "method": "GET", "url": {"raw": "http://localhost:4000/api/external/route?startLng=31.23&startLat=30.04&endLng=31.13&endLat=29.98", "host": ["http://localhost:4000"], "path": ["api", "external", "route"], "query": [{"key": "startLng", "value": "31.23"}, {"key": "startLat", "value": "30.04"}, {"key": "endLng", "value": "31.13"}, {"key": "endLat", "value": "29.98"}]} } }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "token", "value": "" }
+  ]
+}
