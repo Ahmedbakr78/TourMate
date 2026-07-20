@@ -1,95 +1,114 @@
-# Entity Relationship Diagram (ERD) — TourMate MongoDB Schemas
-
-10 collections. Relationships are references (ObjectId) rather than embedded joins.
+# Entity-Relationship Diagram — TourMate
 
 ```mermaid
 erDiagram
-    USER ||--o| DRIVER : "has"
-    USER ||--o| GUIDE : "has"
-    DRIVER ||--o{ VEHICLE : "owns"
-    USER ||--o{ TRIP : "books as tourist"
-    DRIVER ||--o{ TRIP : "assigned"
-    GUIDE ||--o{ TRIP : "assigned"
-    TRIP ||--o{ VOTE : "receives"
-    USER ||--o{ VOTE : "casts"
-    USER ||--o{ REVIEW : "authors"
-    REVIEW ||--o| TRIP : "about"
-    REVIEW ||--o| DRIVER : "about"
-    REVIEW ||--o| GUIDE : "about"
-    USER ||--o{ LOSTITEM : "reports"
-    USER ||--o{ NOTIFICATION : "receives"
-    PLACE ||--o{ REVIEW : "about"
+    USER ||--o{ TRIP : "owns (touristId)"
+    USER ||--o| DRIVER : "is (userId)"
+    USER ||--o| GUIDE : "is (userId)"
+    USER ||--o{ VOTE : "casts (userId)"
+    USER ||--o{ REVIEW : "writes (touristId)"
+    USER ||--o{ LOSTITEM : "reports (reportedBy)"
+    USER ||--o{ NOTIFICATION : "receives (receiverId)"
+    USER ||--o{ NOTIFICATION : "sends (senderId)"
+
+    DRIVER ||--o{ VEHICLE : "owns (driverId)"
+    DRIVER ||--o{ TRIP : "assigned (driverId)"
+    DRIVER ||--o{ REVIEW : "rated (driverId)"
+
+    GUIDE ||--o{ TRIP : "assigned (guideId)"
+    GUIDE ||--o{ REVIEW : "rated (guideId)"
+
+    VEHICLE ||--o{ TRIP : "assigned (vehicleId)"
+
+    TRIP ||--o{ PLACE : "visits (places)"
+    TRIP ||--o{ VOTE : "scopes (tripId)"
+    TRIP ||--o{ REVIEW : "about (tripId)"
+    TRIP ||--o{ LOSTITEM : "during (tripId)"
+
+    PLACE ||--o{ VOTE : "target (placeId)"
+    PLACE ||--o{ REVIEW : "about (placeId)"
 
     USER {
         ObjectId _id PK
         string name
         string email UK
-        string password
-        string role
-        boolean isActive
+        string phone UK
+        string role "ADMIN/TOURIST/DRIVER/GUIDE"
+        string status
+        boolean isVerified
     }
     DRIVER {
         ObjectId _id PK
-        ObjectId user FK
+        ObjectId userId FK
         string licenseNumber UK
-        string availability
         number rating
-        point currentLocation
+        boolean availability
+        string verificationStatus
     }
     GUIDE {
         ObjectId _id PK
-        ObjectId user FK
-        string[] languages
-        string[] specialties
-        string[] certificateUrls
-        string availability
+        ObjectId userId FK
+        array languages
+        number experience
+        string certificate
+        string verificationStatus
     }
     VEHICLE {
         ObjectId _id PK
-        ObjectId driver FK
-        string type
-        string plateNumber UK
+        ObjectId driverId FK
+        string brand
+        string vehicleModel
         number capacity
-        string[] images
+        string plateNumber UK
     }
     PLACE {
         ObjectId _id PK
+        number osmId UK
         string name
+        string city
         string category
-        point location
-        string source
+        point coordinates
     }
     TRIP {
         ObjectId _id PK
-        ObjectId tourist FK
-        ObjectId driver FK
-        ObjectId guide FK
+        ObjectId touristId FK
+        ObjectId guideId FK
+        ObjectId driverId FK
+        ObjectId vehicleId FK
+        number peopleCount
+        number price
         string status
-        object routeGeoJSON
+        boolean isShared
     }
     VOTE {
         ObjectId _id PK
-        ObjectId trip FK
-        ObjectId voter FK
-        number value
+        ObjectId tripId FK
+        ObjectId placeId FK
+        ObjectId userId FK
+        string voteValue "UP/DOWN"
     }
     REVIEW {
         ObjectId _id PK
-        ObjectId author FK
-        string targetType
-        ObjectId target FK
+        ObjectId tripId FK
+        ObjectId touristId FK
+        ObjectId driverId FK
+        ObjectId guideId FK
+        ObjectId placeId FK
         number rating
     }
     LOSTITEM {
         ObjectId _id PK
         ObjectId reportedBy FK
-        string title
+        ObjectId foundBy FK
+        ObjectId tripId FK
         boolean found
     }
     NOTIFICATION {
         ObjectId _id PK
-        ObjectId recipient FK
+        ObjectId senderId FK
+        ObjectId receiverId FK
+        string title
+        boolean isRead
         string type
-        boolean read
     }
 ```

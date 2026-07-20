@@ -1,122 +1,121 @@
-# Class Diagram — TourMate MEAN Backend
+# Class Diagram — TourMate Models
+
+The ten Mongoose models and their key relations (references resolved via `Schema.Types.ObjectId` with `ref`).
 
 ```mermaid
 classDiagram
-    %% Middleware
-    class AuthMiddleware {
-        +authenticate(req, res, next)
-        +signToken(payload)
-        +verifyToken(token)
-    }
-    class RbacMiddleware {
-        +authorize(...roles)
-    }
-    class UploadMiddleware {
-        +upload (multer)
-        +publicUrl(req, file)
-        +deleteFile(name)
-    }
-
-    %% Services
-    class CacheService {
-        -Map store
-        +get(key)
-        +set(key, value, ttl)
-        +has(key)
-    }
-    class OverpassService {
-        +buildPOIQuery(opts)
-        +fetchPOIs(opts)
-    }
-    class OsrmService {
-        +getRoute(opts)
-    }
-    class TrackingService {
-        -Map locationStore
-        +updateDriverLocation(id, coords, meta)
-        +getDriverLocation(id)
-        +getActiveTripLocations()
-    }
-
-    %% Models
     class User {
         +String name
         +String email
         +String password
-        +Role role
-        +Boolean isActive
+        +String phone
+        +String gender
+        +String role
+        +String status
+        +Boolean isVerified
+        +Array refreshTokens
         +toSafeJSON()
     }
     class Driver {
-        +ObjectId user
+        +ObjectId userId
         +String licenseNumber
-        +String availability
         +Number rating
-        +Object currentLocation
+        +Boolean availability
+        +Point currentLocation
+        +String verificationStatus
+        +Array vehicleIds
     }
     class Guide {
-        +ObjectId user
-        +String[] languages
-        +String[] specialties
-        +String[] certificateUrls
-        +String availability
+        +ObjectId userId
+        +Array languages
+        +Number experience
+        +String certificate
+        +Number rating
+        +Boolean availability
+        +String verificationStatus
+        +Point currentLocation
     }
     class Vehicle {
-        +ObjectId driver
-        +String type
-        +String plateNumber
+        +ObjectId driverId
+        +String brand
+        +String vehicleModel
         +Number capacity
-        +String[] images
-    }
-    class Trip {
-        +ObjectId tourist
-        +ObjectId driver
-        +ObjectId guide
-        +String status
-        +Object routeGeoJSON
+        +String plateNumber
+        +Boolean isActive
     }
     class Place {
+        +Number osmId
         +String name
+        +String city
         +String category
-        +Object location
-        +String source
+        +Point coordinates
+    }
+    class Trip {
+        +ObjectId touristId
+        +String name
+        +ObjectId[] places
+        +ObjectId guideId
+        +ObjectId driverId
+        +ObjectId vehicleId
+        +Date startDate
+        +Date endDate
+        +Number peopleCount
+        +Number price
+        +String status
+        +Object routeGeoJSON
+        +Boolean isShared
     }
     class Vote {
-        +ObjectId trip
-        +ObjectId voter
-        +Number value
+        +ObjectId tripId
+        +ObjectId placeId
+        +ObjectId userId
+        +String voteValue
     }
     class Review {
-        +ObjectId author
-        +String targetType
-        +ObjectId target
+        +ObjectId tripId
+        +ObjectId touristId
+        +ObjectId driverId
+        +ObjectId guideId
+        +ObjectId placeId
         +Number rating
     }
     class LostItem {
         +ObjectId reportedBy
         +String title
+        +Point location
         +Boolean found
+        +ObjectId foundBy
+        +ObjectId tripId
     }
     class Notification {
-        +ObjectId recipient
+        +ObjectId senderId
+        +ObjectId receiverId
+        +String title
+        +String message
+        +Boolean isRead
         +String type
-        +Boolean read
     }
 
-    %% Relationships
-    Driver "1" --> "1" User
-    Guide "1" --> "1" User
-    Vehicle "many" --> "1" Driver
-    Trip "1" --> "1" User : tourist
-    Trip "1" --> "1" Driver : optional
-    Trip "1" --> "1" Guide : optional
-    Vote "1" --> "1" Trip
-    Review "1" --> "1" User : author
-    LostItem "1" --> "1" User : reportedBy
-    Notification "1" --> "1" User : recipient
+    User "1" --> "1" Driver : userId
+    User "1" --> "1" Guide : userId
+    User "1" --> "0..*" Trip : touristId
+    User "1" --> "0..*" Vote : userId
+    User "1" --> "0..*" Review : touristId
+    User "1" --> "0..*" LostItem : reportedBy
+    User "1" --> "0..*" Notification : receiverId
 
-    %% Composition / usage
-    OverpassService ..> CacheService : uses
-    TrackingService ..> Driver : reads/writes
-    AuthMiddleware ..> User : verifies
+    Driver "1" --> "0..*" Vehicle : driverId
+    Driver "1" --> "0..*" Trip : driverId
+    Guide "1" --> "0..*" Trip : guideId
+    Vehicle "1" --> "0..*" Trip : vehicleId
+
+    Trip "1" --> "0..*" Place : places
+    Trip "1" --> "0..*" Vote : tripId
+    Trip "1" --> "0..*" Review : tripId
+    Trip "1" --> "0..*" LostItem : tripId
+
+    Place "1" --> "0..*" Vote : placeId
+    Place "1" --> "0..*" Review : placeId
+    Guide "1" --> "0..*" Review : guideId
+    Driver "1" --> "0..*" Review : driverId
 ```

@@ -1,92 +1,80 @@
 # Use Case Diagram — TourMate
 
 ```mermaid
-graph TD
-    %% Actors
-    Tourist((Tourist))
-    Driver((Driver))
-    Guide((Guide))
-    Admin((Admin))
-    System((TourMate System))
-
-    %% Modules
-    subgraph Auth[Auth Module]
-        UC1[Register]
-        UC2[Login]
-        UC3[Forgot Password]
-        UC4[Logout]
+flowchart TD
+    subgraph Actors
+        T((Tourist))
+        D((Driver))
+        G((Guide))
+        A((Admin))
     end
 
-    subgraph User[User Module]
-        UC5[Manage Profile]
-        UC6[Block / Unblock User - Admin]
+    subgraph AuthModule["Auth & User"]
+        UC1[Register / Login / Logout]
+        UC2[Refresh Token]
+        UC3[Update Profile / Change Password]
+        UC4[Upload Profile Image]
     end
 
-    subgraph Guide[Guide Module]
-        UC7[Create Guide]
-        UC8[Update Guide]
-        UC9[Delete Guide]
-        UC10[Search Guides]
-        UC11[Update Availability]
-        UC12[Upload Certificate]
+    subgraph TripModule["Trip"]
+        UC5[Create / Edit / Delete Trip]
+        UC6[Assign Guide / Driver / Vehicle]
+        UC7[Start / Complete / Cancel Trip]
+        UC8[Calculate Price]
+        UC9[Share / View Shared Trips]
     end
 
-    subgraph Driver[Driver Module]
-        UC13[Create Driver]
-        UC14[Update Driver]
-        UC15[Delete Driver]
-        UC16[Search Drivers]
-        UC17[Update Availability]
+    subgraph TrackingModule["Tracking (Polling)"]
+        UC10[Push Driver Location]
+        UC11[Poll Driver / Active Trips]
     end
 
-    subgraph Vehicle[Vehicle Module]
-        UC18[Create Vehicle]
-        UC19[Update Vehicle]
-        UC20[Delete Vehicle]
-        UC21[Get Driver Vehicles]
-        UC22[Upload Vehicle Image]
+    subgraph ExternalModule["External Geo"]
+        UC12[Search POIs (Overpass)]
+        UC13[Get Route (OSRM)]
     end
 
-    subgraph Trip[Trip Module]
-        UC23[Book Trip]
-        UC24[Confirm Trip]
-        UC25[Start Trip]
-        UC26[Complete Trip]
-        UC27[Cancel Trip]
+    subgraph CollabModule["Collaboration"]
+        UC14[Vote on Place]
+        UC15[Write Review]
+        UC16[Receive Notifications]
     end
 
-    subgraph Tracking[Location Tracking]
-        UC28[Push Location - Driver]
-        UC29[Poll Location - Clients]
+    subgraph LostModule["Lost & Found"]
+        UC17[Report Lost Item]
+        UC18[Report Found / Close]
     end
 
-    subgraph Place[Place / POI Module]
-        UC30[Discover POIs - Overpass]
-        UC31[Calculate Route - OSRM]
+    subgraph ResourceModule["Resources"]
+        UC19[Browse Places / Guides / Drivers / Vehicles]
     end
 
-    subgraph Vote[Vote Module]
-        UC32[Upvote / Downvote Trip]
+    subgraph AdminModule["Admin"]
+        UC20[Approve/Reject Guides & Drivers]
+        UC21[Block/Unblock Users]
+        UC22[View Stats & Reports]
+        UC23[Manage Trips]
     end
 
-    subgraph Review[Review Module]
-        UC33[Write Review]
-        UC34[Read Reviews]
-    end
+    T --> UC1 & UC2 & UC3 & UC4
+    T --> UC5 & UC6 & UC7 & UC8 & UC9
+    T --> UC11 & UC12 & UC13
+    T --> UC14 & UC15 & UC16
+    T --> UC17 & UC18
+    T --> UC19
 
-    subgraph Notification[Notification Module]
-        UC35[Receive Notification]
-        UC36[Send Notification - Admin/System]
-    end
+    D --> UC1 & UC3
+    D --> UC10 & UC11
+    D --> UC7
+    D --> UC19
+    D --> UC15
 
-    subgraph LostItem[Lost Item Module]
-        UC37[Report Lost Item]
-        UC38[Mark Found]
-    end
+    G --> UC1 & UC3
+    G --> UC7
+    G --> UC19
+    G --> UC15
 
-    %% Associations
-    Tourist --> UC1 & UC2 & UC3 & UC4 & UC5 & UC23 & UC29 & UC30 & UC31 & UC32 & UC33 & UC34 & UC35 & UC37
-    Driver --> UC2 & UC4 & UC13 & UC14 & UC15 & UC17 & UC18 & UC19 & UC20 & UC21 & UC22 & UC28 & UC33
-    Guide --> UC2 & UC4 & UC7 & UC8 & UC9 & UC10 & UC11 & UC12 & UC33
-    Admin --> UC2 & UC4 & UC6 & UC7 & UC13 & UC18 & UC23 & UC36 & UC38 & UC26
+    A --> UC20 & UC21 & UC22 & UC23
+    A --> UC11
+    A --> UC19
 ```
