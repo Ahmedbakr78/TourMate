@@ -13,11 +13,12 @@
           "builder": "@angular-devkit/build-angular:application",
           "options": {
             "outputPath": "dist/tourmate-client",
+            "allowedCommonJsDependencies": ["leaflet"],
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
             "tsConfig": "tsconfig.app.json",
-            "assets": [],
+            "assets": ["src/favicon.svg"],
             "styles": ["src/styles.scss"],
             "scripts": []
           },
@@ -46,5 +47,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": "4fe932b4-d37d-41b5-b981-cc4e290c4e0b"
   }
 }
