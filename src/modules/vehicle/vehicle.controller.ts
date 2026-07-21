@@ -7,69 +7,25 @@ import { fileTypes, roleEnum } from "../../common/index.js";
 
 const vehicleRouter = Router();
 
-// Get all vehicles
-vehicleRouter.get(
-    "/",
-    vehicleService.getVehicles
-);
-
-// Search vehicles
-vehicleRouter.get(
-    "/search",
-    vehicleService.searchVehicles
-);
-
-// Get vehicles by driver id
-vehicleRouter.get(
-    "/driver/:driverId",
-    vehicleService.getDriverVehicles
-);
-
-// Get vehicle by id
-vehicleRouter.get(
-    "/:id",
-    vehicleService.getVehicleById
-);
-
 // Create vehicle
-vehicleRouter.post(
-    "/",
-    authentication,
-    authorization([roleEnum.DRIVER, roleEnum.ADMIN]),
-    vehicleService.createVehicle
-);
+vehicleRouter.post("/create_vehicle", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), hostUpload([fileTypes.IMAGE]).single("image"), vehicleService.createVehicle);
 
-// Update vehicle
-vehicleRouter.patch(
-    "/:id",
-    authentication,
-    authorization([roleEnum.DRIVER, roleEnum.ADMIN]),
-    vehicleService.updateVehicle
-);
+// update vehicle
+vehicleRouter.patch("/update/:id", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), hostUpload([fileTypes.IMAGE]).single("image"), vehicleService.updateVehicle);
 
-// Delete vehicle
-vehicleRouter.delete(
-    "/:id",
-    authentication,
-    authorization([roleEnum.DRIVER, roleEnum.ADMIN]),
-    vehicleService.deleteVehicle
-);
+// get vehicle by id
+vehicleRouter.get("/get/:id", vehicleService.getVehicleById);
 
-// Upload vehicle image
-vehicleRouter.post(
-    "/:id/image",
-    authentication,
-    authorization([roleEnum.DRIVER, roleEnum.ADMIN]),
-    hostUpload([fileTypes.IMAGE]).single("image"),
-    vehicleService.uploadVehicleImage
-);
+// get all vehicles
+vehicleRouter.get("/all", vehicleService.getVehicles);
 
-// Delete vehicle image
-vehicleRouter.delete(
-    "/:id/image",
-    authentication,
-    authorization([roleEnum.DRIVER, roleEnum.ADMIN]),
-    vehicleService.deleteVehicleImage
-);
+// search vehicles  
+vehicleRouter.get("/search", vehicleService.searchVehicles);
+
+// delete vehicle
+vehicleRouter.delete("/delete/:id", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), vehicleService.deleteVehicle);
+
+// get driver vehicles
+vehicleRouter.get("/driver/:driverId", vehicleService.getDriverVehicles);
 
 export { vehicleRouter };

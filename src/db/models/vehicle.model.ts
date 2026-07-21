@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { PaginateModel } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 import { IVehicle } from "../../common/index.js";
 
 const vehicleSchema = new mongoose.Schema<IVehicle>(
@@ -52,4 +53,5 @@ const vehicleSchema = new mongoose.Schema<IVehicle>(
     }
 );
 
-export const vehicleModel = mongoose.model<IVehicle>("Vehicle", vehicleSchema);
+vehicleSchema.plugin(mongoosePaginate);
+export const vehicleModel = mongoose.model<IVehicle, PaginateModel<IVehicle>>("Vehicle", vehicleSchema);

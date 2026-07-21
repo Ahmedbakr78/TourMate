@@ -25,4 +25,7 @@ adminRouter.delete("/:id", authentication, authorization([roleEnum.ADMIN]), admi
 // Update Driver Verification Status
 adminRouter.patch("/driver/:id/verification-status", authentication, authorization([roleEnum.ADMIN]), adminService.updateDriverVerificationStatus);
 
+// Update Guide Verification Status
+adminRouter.patch("/guide/:id/verification-status", authentication, authorization([roleEnum.ADMIN]), adminService.updateGuideVerificationStatus);
+
 export { adminRouter };

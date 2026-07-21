@@ -7,71 +7,23 @@ import { fileTypes, roleEnum } from "../../common/index.js";
 
 const guideRouter = Router();
 
-// Get all guides
-guideRouter.get(
-    "/",
-    guideService.getGuides
-);
-
-// Search guides
-guideRouter.get(
-    "/search",
-    guideService.searchGuides
-);
-
-// Get guide by id
-guideRouter.get(
-    "/:id",
-    guideService.getGuideById
-);
-
 // Create guide
-guideRouter.post(
-    "/",
-    authentication,
-    authorization([roleEnum.ADMIN]),
-    guideService.createGuide
-);
+guideRouter.post("/create_guide", authentication, authorization([roleEnum.TOURIST]), hostUpload([fileTypes.IMAGE, fileTypes.APPLICATION]).single("certificate"), guideService.createGuide);
 
 // Update guide
-guideRouter.patch(
-    "/:id",
-    authentication,
-    authorization([roleEnum.ADMIN]),
-    guideService.updateGuide
-);
+guideRouter.patch("/update/:id", authentication, authorization([roleEnum.ADMIN, roleEnum.GUIDE]), guideService.updateGuide);
 
-// Delete guide
-guideRouter.delete(
-    "/:id",
-    authentication,
-    authorization([roleEnum.ADMIN]),
-    guideService.deleteGuide
-);
+// delete guide
+guideRouter.delete("/delete/:id", authentication, authorization([roleEnum.ADMIN, roleEnum.GUIDE]), guideService.deleteGuide);
 
-// Update availability
-guideRouter.patch(
-    "/:id/availability",
-    authentication,
-    authorization([roleEnum.GUIDE, roleEnum.ADMIN]),
-    guideService.updateAvailability
-);
+// Get guide by id
+guideRouter.get("/get/:id", guideService.getGuideById);
 
-// Upload certificate
-guideRouter.post(
-    "/:id/certificate",
-    authentication,
-    authorization([roleEnum.GUIDE, roleEnum.ADMIN]),
-    hostUpload([fileTypes.IMAGE, fileTypes.APPLICATION]).single("certificate"),
-    guideService.uploadCertificate
-);
+// Get all guides
+guideRouter.get("/all", guideService.getGuides);
 
-// Delete certificate
-guideRouter.delete(
-    "/:id/certificate",
-    authentication,
-    authorization([roleEnum.GUIDE, roleEnum.ADMIN]),
-    guideService.deleteCertificate
-);
+// Search guides
+guideRouter.get("/search", guideService.searchGuides);
+
 
 export { guideRouter };

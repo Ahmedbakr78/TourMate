@@ -204,6 +204,64 @@ class adminService {
         );
         return res.json(successResponse(`Driver ${verificationStatus.toLowerCase()} successfully`, 200, updatedDriver));
     };
+    updateGuideVerificationStatus = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+        const { verificationStatus } = req.body;
+
+        if (!mongoose.isValidObjectId(id)) throw new badRequestException("Invalid guide id");
+
+        if (verificationStatus !== verificationStatusEnum.APPROVED && verificationStatus !== verificationStatusEnum.REJECTED) {
+            throw new badRequestException(
+                "verificationStatus must be APPROVED or REJECTED"
+            );
+        }
+
+        const guide = await this.guideRepo.findDocumentById(id);
+        if (!guide) throw new badRequestException("Guide not found");
+
+        if (guide.verificationStatus === verificationStatus) {
+            throw new badRequestException(
+                `Guide already ${verificationStatus.toLowerCase()}`
+            );
+        }
+
+        await this.guideRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                verificationStatus
+            }
+        );
+
+        if (verificationStatus === verificationStatusEnum.APPROVED) {
+            await this.userRepo.findDocumentByIdAndUpdate(
+                guide.userId,
+                {
+                    role: roleEnum.GUIDE
+                }
+            );
+        }
+
+        if (verificationStatus === verificationStatusEnum.REJECTED) {
+            await this.userRepo.findDocumentByIdAndUpdate(
+                guide.userId,
+                {
+                    role: roleEnum.TOURIST
+                }
+            );
+        }
+        const updatedGuide = await this.guideRepo.findDocumentById(
+            id,
+            {},
+            {
+                populate: {
+                    path: "userId",
+                    select: "-password"
+                }
+            }
+        );
+        return res.json(successResponse(`Guide ${verificationStatus.toLowerCase()} successfully`, 200, updatedGuide));
+    };
 }
 
 export default new adminService();

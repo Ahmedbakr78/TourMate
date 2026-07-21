@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { PaginateModel } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 import { ITrip, tripStatusEnum } from "../../common/index.js";
 
 const tripSchema = new mongoose.Schema<ITrip>(
@@ -79,4 +80,6 @@ const tripSchema = new mongoose.Schema<ITrip>(
     }
 );
 
-export const tripModel = mongoose.model<ITrip>("Trip", tripSchema);
+tripSchema.plugin(mongoosePaginate);
+
+export const tripModel = mongoose.model<ITrip, PaginateModel<ITrip>>("Trip", tripSchema);

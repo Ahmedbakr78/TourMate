@@ -1,4 +1,6 @@
-import mongoose from "mongoose";
+import mongoose, { PaginateModel } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
+
 import { IGuide, verificationStatusEnum } from "../../common/index.js";
 
 const guideSchema = new mongoose.Schema<IGuide>(
@@ -43,5 +45,6 @@ const guideSchema = new mongoose.Schema<IGuide>(
     }
 );
 
-export const guideModel = mongoose.model<IGuide>("Guide", guideSchema);;
+guideSchema.plugin(mongoosePaginate);
+export const guideModel = mongoose.model<IGuide, PaginateModel<IGuide>>("Guide", guideSchema);;
 
