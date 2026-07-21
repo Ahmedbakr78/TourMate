@@ -4,6 +4,7 @@ import {
     IGuide,
     IRequest,
     roleEnum,
+    statusUserEnum,
     verificationStatusEnum
 } from "../../../common/index.js";
 import {
@@ -20,6 +21,7 @@ import {
     successResponse,
     uploadFileToCloudinary
 } from "../../../utils/index.js";
+import mongoose from "mongoose";
 
 class guideService {
 
@@ -35,10 +37,22 @@ class guideService {
             certificate
         } = req.body;
 
+        if (!mongoose.isValidObjectId(userId))
+            throw new badRequestException("Invalid user id");
+
         const user = await this.userRepo.findDocumentById(userId);
 
         if (!user)
             throw new badRequestException("User not found");
+
+        if (!user.isVerified)
+            throw new badRequestException("User is not verified");
+
+        if (user.status !== statusUserEnum.ACTIVE)
+            throw new badRequestException("User is blocked");
+
+        if (user.role !== roleEnum.TOURIST)
+            throw new badRequestException("Only tourist can become a guide");
 
         const existingGuide = await this.guideRepo.findOneDocument({ userId });
 
@@ -52,6 +66,8 @@ class guideService {
             }
         );
 
+        const updatedUser = await this.userRepo.findDocumentById(userId);
+
         const guide = await this.guideRepo.createNewDocument({
             userId,
             languages,
@@ -62,18 +78,23 @@ class guideService {
             verificationStatus: verificationStatusEnum.PENDING
         } as Partial<IGuide>);
 
-        return res.json(
+        return res.status(201).json(
             successResponse(
                 "Guide created successfully",
                 201,
-                guide
+                {
+                    guide,
+                    user: updatedUser
+                }
             )
         );
     };
-
     updateGuide = async (req: IRequest, res: Response) => {
 
         const { id } = req.params as { id: string };
+
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid guide id");
 
         const {
             languages,
@@ -90,28 +111,42 @@ class guideService {
 
         const updatedData: Partial<IGuide> = {};
 
-        if (languages)
+        if (languages !== undefined)
             updatedData.languages = languages;
 
-        if (experience)
+        if (experience !== undefined)
             updatedData.experience = experience;
 
-        if (certificate)
+        if (certificate !== undefined)
             updatedData.certificate = certificate;
 
         if (typeof availability === "boolean")
             updatedData.availability = availability;
 
-        if (verificationStatus)
+        if (verificationStatus !== undefined) {
+
+            if (
+                !Object.values(verificationStatusEnum).includes(
+                    verificationStatus
+                )
+            ) {
+                throw new badRequestException("Invalid verification status");
+            }
+
             updatedData.verificationStatus = verificationStatus;
+        }
 
         if (!Object.keys(updatedData).length)
             throw new badRequestException("No data provided to update");
 
         const updatedGuide = await this.guideRepo.findDocumentByIdAndUpdate(
             id,
-            { $set: updatedData },
-            { new: true }
+            {
+                $set: updatedData
+            },
+            {
+                new: true
+            }
         );
 
         return res.json(
@@ -126,6 +161,9 @@ class guideService {
     deleteGuide = async (req: IRequest, res: Response) => {
 
         const { id } = req.params as { id: string };
+
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid guide id");
 
         const guide = await this.guideRepo.findDocumentById(id);
 
@@ -153,9 +191,19 @@ class guideService {
 
         const { id } = req.params as { id: string };
 
-        const guide = await guideModel
-            .findById(id)
-            .populate("userId", "-password");
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid guide id");
+
+        const guide = await this.guideRepo.findDocumentById(
+            id,
+            {},
+            {
+                populate: {
+                    path: "userId",
+                    select: "-password"
+                }
+            }
+        );
 
         if (!guide)
             throw new badRequestException("Guide not found");
@@ -178,11 +226,19 @@ class guideService {
             limit: Number(limit)
         });
 
-        const guides = await guideModel
-            .find()
-            .populate("userId", "-password")
-            .skip(skip)
-            .limit(currentLimit);
+        const guides = await this.guideRepo.findDocuments(
+            {},
+            {},
+            {
+                populate: {
+                    path: "userId",
+                    select: "-password"
+                },
+                skip,
+                limit: currentLimit,
+                sort: { createdAt: -1 }
+            }
+        );
 
         return res.json(
             successResponse(
@@ -192,29 +248,50 @@ class guideService {
             )
         );
     };
-
     searchGuides = async (req: IRequest, res: Response) => {
 
         const {
             language,
             availability,
             verificationStatus
-        } = req.query;
+        } = req.body;
 
         const filter: any = {};
 
-        if (language)
+        if (language) {
             filter.languages = language;
+        }
 
-        if (availability !== undefined)
-            filter.availability = availability === "true";
+        if (availability !== undefined) {
+            filter.availability = availability;
+        }
 
-        if (verificationStatus)
+        if (
+            verificationStatus &&
+            !Object.values(verificationStatusEnum).includes(
+                verificationStatus
+            )
+        ) {
+            throw new badRequestException("Invalid verification status");
+        }
+
+        if (verificationStatus) {
             filter.verificationStatus = verificationStatus;
+        }
 
-        const guides = await guideModel
-            .find(filter)
-            .populate("userId", "-password");
+        const guides = await this.guideRepo.findDocuments(
+            filter,
+            {},
+            {
+                populate: {
+                    path: "userId",
+                    select: "-password"
+                },
+                sort: {
+                    createdAt: -1
+                }
+            }
+        );
 
         return res.json(
             successResponse(
@@ -230,23 +307,32 @@ class guideService {
         const { id } = req.params as { id: string };
         const { availability } = req.body;
 
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid guide id");
+
         if (typeof availability !== "boolean")
             throw new badRequestException("Invalid availability value");
 
-        const guide = await this.guideRepo.findDocumentByIdAndUpdate(
-            id,
-            { availability },
-            { new: true }
-        );
+        const guide = await this.guideRepo.findDocumentById(id);
 
         if (!guide)
             throw new badRequestException("Guide not found");
 
+        const updatedGuide = await this.guideRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                availability
+            },
+            {
+                new: true
+            }
+        );
+
         return res.json(
             successResponse(
-                "Guide updated successfully",
+                "Guide availability updated successfully",
                 200,
-                guide
+                updatedGuide
             )
         );
     };
@@ -254,6 +340,10 @@ class guideService {
     uploadCertificate = async (req: IRequest, res: Response) => {
 
         const { id } = req.params as { id: string };
+
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid guide id");
+
         const filePath = req.file?.path;
 
         if (!filePath)
@@ -263,6 +353,12 @@ class guideService {
 
         if (!guide)
             throw new badRequestException("Guide not found");
+
+        if (guide.certificate?.public_id) {
+            await deleteFileFromCloudinary(
+                guide.certificate.public_id
+            );
+        }
 
         const uploadResult = await uploadFileToCloudinary(
             filePath,
@@ -276,7 +372,10 @@ class guideService {
         const updatedGuide = await this.guideRepo.findDocumentByIdAndUpdate(
             id,
             {
-                certificate: uploadResult.secure_url
+                certificate: {
+                    secure_url: uploadResult.secure_url,
+                    public_id: uploadResult.public_id
+                }
             },
             {
                 new: true
@@ -296,18 +395,27 @@ class guideService {
 
         const { id } = req.params as { id: string };
 
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid guide id");
+
         const guide = await this.guideRepo.findDocumentById(id);
 
         if (!guide)
             throw new badRequestException("Guide not found");
 
         if (!guide.certificate)
-            throw new badRequestException("No certificate to delete");
+            throw new badRequestException("No certificate found");
 
-        await this.guideRepo.findDocumentByIdAndUpdate(
+        await deleteFileFromCloudinary(
+            guide.certificate.public_id
+        );
+
+        const updatedGuide = await this.guideRepo.findDocumentByIdAndUpdate(
             id,
             {
-                $unset: { certificate: 1 }
+                $unset: {
+                    certificate: 1
+                }
             },
             {
                 new: true
@@ -317,11 +425,11 @@ class guideService {
         return res.json(
             successResponse(
                 "Certificate deleted successfully",
-                200
+                200,
+                updatedGuide
             )
         );
     };
-
 }
 
 export default new guideService();

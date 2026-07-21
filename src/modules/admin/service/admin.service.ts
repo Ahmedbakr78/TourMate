@@ -1,7 +1,8 @@
 import { Response } from "express";
-import { IRequest, lostItemStatusEnum, roleEnum, statusUserEnum, tripStatusEnum } from "../../../common/index.js";
+import { IRequest, lostItemStatusEnum, roleEnum, statusUserEnum, tripStatusEnum, verificationStatusEnum } from "../../../common/index.js";
 import { driverModel, driverRepository, guideModel, guideRepository, lostItemModel, lostItemRepository, placeModel, placeRepository, reviewModel, reviewRepository, tripModel, tripRepository, userModel, userRepository, voteModel, voteRepository } from "../../../db/index.js";
 import { badRequestException, deleteFileFromCloudinary, successResponse, unauthorizedException } from "../../../utils/index.js";
+import mongoose from "mongoose";
 
 
 class adminService {
@@ -168,8 +169,41 @@ class adminService {
 
         return res.json(successResponse("User deleted successfully", 200));
     };
+    updateDriverVerificationStatus = async (req: IRequest, res: Response) => {
 
+        const { id } = req.params as { id: string };
+        const { verificationStatus } = req.body;
+        if (!mongoose.isValidObjectId(id)) throw new badRequestException("Invalid driver id");
 
+        if (verificationStatus !== verificationStatusEnum.APPROVED && verificationStatus !== verificationStatusEnum.REJECTED) {
+            throw new badRequestException("verificationStatus must be APPROVED or REJECTED");
+        }
+
+        const driver = await this.driverRepo.findDocumentById(id);
+        if (!driver) throw new badRequestException("Driver not found");
+        if (driver.verificationStatus === verificationStatus) {
+            throw new badRequestException(`Driver already ${verificationStatus.toLowerCase()}`);
+        }
+
+        await this.driverRepo.findDocumentByIdAndUpdate(id, { verificationStatus })
+        if (verificationStatus === verificationStatusEnum.APPROVED) {
+            await this.userRepo.findDocumentByIdAndUpdate(driver.userId, { role: roleEnum.DRIVER });
+        }
+        if (verificationStatus === verificationStatusEnum.REJECTED) {
+            await this.userRepo.findDocumentByIdAndUpdate(driver.userId, { role: roleEnum.TOURIST });
+        }
+        const updatedDriver = await this.driverRepo.findDocumentById(
+            id,
+            {},
+            {
+                populate: {
+                    path: "userId",
+                    select: "-password"
+                }
+            }
+        );
+        return res.json(successResponse(`Driver ${verificationStatus.toLowerCase()} successfully`, 200, updatedDriver));
+    };
 }
 
 export default new adminService();

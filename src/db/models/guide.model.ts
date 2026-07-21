@@ -16,8 +16,10 @@ const guideSchema = new mongoose.Schema<IGuide>(
             type: Number,
             default: 0
         },
-
-        certificate: String,
+        certificate: {
+            secure_url: String,
+            public_id: String,
+        },
 
         rating: {
             type: Number,

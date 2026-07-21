@@ -1,8 +1,14 @@
 import mongoose, {
-    DeleteResult, FilterQuery, Model, PaginateOptions, PaginateResult, ProjectionType, QueryOptions, Types, UpdateQuery, UpdateResult,
+    DeleteResult,
+    FilterQuery,
+    Model,
+    ProjectionType,
+    QueryOptions,
+    Types,
+    UpdateQuery,
+    UpdateResult,
+    PopulateOptions
 } from "mongoose";
-import { PopulateOptions } from "mongoose";
-import { PaginateModel } from "mongoose";
 
 export abstract class baseRepository<T> {
 
@@ -12,15 +18,45 @@ export abstract class baseRepository<T> {
         return await this.model.create(document);
     }
 
-    async findOneDocument(filters: FilterQuery<T>, projection?: ProjectionType<T>, options?: QueryOptions<T>): Promise<T | null> {
-        return await this.model.findOne(filters, projection, options);
+    async findOneDocument(
+        filters: FilterQuery<T>,
+        projection?: ProjectionType<T>,
+        options?: QueryOptions<T> & {
+            populate?: PopulateOptions | PopulateOptions[];
+        }
+    ): Promise<T | null> {
+
+        const query = this.model.findOne(filters, projection, options);
+
+        if (options?.populate) {
+            query.populate(options.populate);
+        }
+
+        return await query;
     }
 
-    async findDocumentById(id: string | Types.ObjectId, projection?: ProjectionType<T>, options?: QueryOptions<T>): Promise<T | null> {
-        return await this.model.findById(id, projection, options);
+    async findDocumentById(
+        id: string | Types.ObjectId,
+        projection?: ProjectionType<T>,
+        options?: QueryOptions<T> & {
+            populate?: PopulateOptions | PopulateOptions[];
+        }
+    ): Promise<T | null> {
+
+        const query = this.model.findById(id, projection, options);
+
+        if (options?.populate) {
+            query.populate(options.populate);
+        }
+
+        return await query;
     }
 
-    async findDocumentByIdAndUpdate(id: string | Types.ObjectId, updatedObject: UpdateQuery<T>, options?: QueryOptions<T>): Promise<T | null> {
+    async findDocumentByIdAndUpdate(
+        id: string | Types.ObjectId,
+        updatedObject: UpdateQuery<T>,
+        options?: QueryOptions<T>
+    ): Promise<T | null> {
 
         return await this.model.findByIdAndUpdate(
             id,
@@ -32,9 +68,15 @@ export abstract class baseRepository<T> {
         );
     }
 
-    async updateOneDocument(filters: FilterQuery<T>, updatedObject: UpdateQuery<T>, options?: QueryOptions<T>): Promise<T | null> {
+    async updateOneDocument(
+        filters: FilterQuery<T>,
+        updatedObject: UpdateQuery<T>,
+        options?: QueryOptions<T>
+    ): Promise<T | null> {
 
-        return await this.model.findOneAndUpdate(filters, updatedObject,
+        return await this.model.findOneAndUpdate(
+            filters,
+            updatedObject,
             {
                 runValidators: true,
                 ...options
@@ -42,7 +84,10 @@ export abstract class baseRepository<T> {
         );
     }
 
-    async updateMultipleDocument(filters: FilterQuery<T>, updatedObject: UpdateQuery<T>): Promise<UpdateResult> {
+    async updateMultipleDocument(
+        filters: FilterQuery<T>,
+        updatedObject: UpdateQuery<T>
+    ): Promise<UpdateResult> {
 
         return await this.model.updateMany(filters, updatedObject);
     }
@@ -59,8 +104,21 @@ export abstract class baseRepository<T> {
         return await this.model.findOneAndDelete(filters);
     }
 
-    async findDocuments(filters: FilterQuery<T> = {}, projection?: ProjectionType<T>, options?: QueryOptions<T>): Promise<T[]> {
-        return await this.model.find(filters, projection, options);
+    async findDocuments(
+        filters: FilterQuery<T> = {},
+        projection?: ProjectionType<T>,
+        options?: QueryOptions<T> & {
+            populate?: PopulateOptions | PopulateOptions[];
+        }
+    ): Promise<T[]> {
+
+        const query = this.model.find(filters, projection, options);
+
+        if (options?.populate) {
+            query.populate(options.populate);
+        }
+
+        return await query;
     }
 
     async countDocuments(filters: FilterQuery<T> = {}): Promise<number> {
@@ -78,12 +136,5 @@ export abstract class baseRepository<T> {
     async insertMany(documents: Partial<T>[]) {
         return await this.model.insertMany(documents);
     }
-    async findOneWithPopulate(
-        filter: FilterQuery<T>,
-        populate: PopulateOptions | PopulateOptions[]
-    ) {
-        return this.model.findOne(filter).populate(populate);
-    }
-
 
 }

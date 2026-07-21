@@ -9,48 +9,23 @@ import { roleEnum } from "../../common/index.js";
 
 const driverRouter = Router();
 
-
-// Get all drivers
-driverRouter.get(
-    "/",
-    driverService.getDrivers
-);
-
-// Search drivers
-driverRouter.get(
-    "/search",
-    driverService.searchDrivers
-);
-
-// Get driver by id
-driverRouter.get(
-    "/:id",
-    driverService.getDriverById
-);
-
-
 // Create driver
-driverRouter.post(
-    "/",
-    authentication,
-    authorization([roleEnum.ADMIN]),
-    driverService.createDriver
-);
+driverRouter.post("/create_driver", authentication, driverService.createDriver);
 
 // Update driver
-driverRouter.patch(
-    "/:id",
-    authentication,
-    authorization([roleEnum.ADMIN]),
-    driverService.updateDriver
-);
+driverRouter.patch("/update/:id", authentication, authorization([roleEnum.ADMIN, roleEnum.DRIVER]), driverService.updateDriver);
 
 // Delete driver
-driverRouter.delete(
-    "/:id",
-    authentication,
-    authorization([roleEnum.ADMIN]),
-    driverService.deleteDriver
-);
+driverRouter.delete("/delete/:id", authentication, authorization([roleEnum.ADMIN, roleEnum.DRIVER]), driverService.deleteDriver);
+
+// Get driver by id
+driverRouter.get("/get/:id", driverService.getDriverById);
+
+// Get all drivers
+driverRouter.get("/all", driverService.getDrivers);
+
+// Search drivers
+driverRouter.post("/search", driverService.searchDrivers);
+
 
 export { driverRouter };

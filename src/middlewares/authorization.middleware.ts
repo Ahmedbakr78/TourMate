@@ -11,8 +11,6 @@ export const authorization = (roles: ReadonlyArray<roleEnum>) => {
         }
 
         const { user } = req.loggedInUser;
-        console.log("User role:", user.role);
-        console.log("Allowed roles:", roles);
         if (!roles.includes(user.role)) {
             throw new forbiddenException("You are not authorized to access this resource");
         }

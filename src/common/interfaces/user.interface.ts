@@ -37,15 +37,19 @@ interface IDriver extends Document<Types.ObjectId> {
     licenseNumber: string;
     rating: number;
     availability: boolean;
-    currentLocation: ILocation;
+    currentLocation?: ILocation;
     verificationStatus: verificationStatusEnum;
 }
 
+interface ICertificate {
+    secure_url: string;
+    public_id: string;
+}
 interface IGuide extends Document<Types.ObjectId> {
     userId: Types.ObjectId;
     languages: string[];
     experience: number;
-    certificate: string;
+    certificate?: ICertificate;
     rating: number;
     availability: boolean;
     verificationStatus: verificationStatusEnum;
