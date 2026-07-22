@@ -75,6 +75,7 @@ interface IPlace extends Document<Types.ObjectId> {
     category: string;
     description: string;
     coordinates: ILocation;
+    price?: number;
 }
 interface ITrip extends Document<Types.ObjectId> {
     touristId: Types.ObjectId;

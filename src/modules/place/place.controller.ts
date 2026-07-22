@@ -9,27 +9,26 @@ import { roleEnum } from "../../common/index.js";
 
 const placeRouter = Router();
 
-/* Public */
+// Create a new place
+placeRouter.post("/create_place", authentication, authorization([roleEnum.ADMIN, roleEnum.TOURIST]), placeService.createPlace);
+
+// Get a place by id
+placeRouter.get("/get/:id", authentication, placeService.getPlaceById);
 
 // Get all places
-placeRouter.get("/", placeService.getPlaces);
+placeRouter.get("/all", authentication, placeService.getPlaces);
+
+// Update a place
+placeRouter.put("/update/:id", authentication, authorization([roleEnum.ADMIN, roleEnum.TOURIST]), placeService.updatePlace);
+
+// Delete a place
+placeRouter.delete("/places/:id", authentication, authorization([roleEnum.ADMIN, roleEnum.TOURIST]), placeService.deletePlace);
 
 // Search places
-placeRouter.get("/search", placeService.searchPlaces);
+placeRouter.get("/search", authentication, placeService.searchPlaces);
 
-// Nearby places
-placeRouter.get("/nearby", placeService.getNearbyPlaces);
+// Get nearby places
+placeRouter.get("/nearby", authentication, placeService.getNearbyPlaces);
 
-// Get place by id
-placeRouter.get("/:id", placeService.getPlaceById);
-
-// Create place
-placeRouter.post("/", authentication, authorization([roleEnum.ADMIN]), placeService.createPlace);
-
-// Update place
-placeRouter.patch("/:id", authentication, authorization([roleEnum.ADMIN]), placeService.updatePlace);
-
-// Delete place
-placeRouter.delete("/:id", authentication, authorization([roleEnum.ADMIN]), placeService.deletePlace);
 
 export { placeRouter };

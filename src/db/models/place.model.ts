@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { PaginateModel } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 import { IPlace } from "../../common/index.js";
 
 const placeSchema = new mongoose.Schema<IPlace>(
@@ -42,7 +43,11 @@ const placeSchema = new mongoose.Schema<IPlace>(
                 type: [Number],
                 required: true
             }
-        }
+        },
+        price: {
+            type: Number,
+            default: 0,
+        },
     },
     {
         timestamps: true
@@ -51,4 +56,6 @@ const placeSchema = new mongoose.Schema<IPlace>(
 
 placeSchema.index({ coordinates: "2dsphere" });
 
-export const placeModel = mongoose.model<IPlace>("Place", placeSchema);
+placeSchema.plugin(mongoosePaginate);
+
+export const placeModel = mongoose.model<IPlace, PaginateModel<IPlace>>("Place", placeSchema);

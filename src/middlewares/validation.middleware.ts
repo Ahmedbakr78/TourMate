@@ -59,7 +59,6 @@ export const validationMiddleware = (schemas: SchemaType) => {
                 }
             );
         }
-
         next();
 
     };

@@ -1,15 +1,7 @@
 import { Request, Response } from "express";
 import { IPlace } from "../../../common/index.js";
-import {
-    placeModel,
-    placeRepository
-} from "../../../db/index.js";
-import {
-    badRequestException,
-    conflictException,
-    pagination,
-    successResponse
-} from "../../../utils/index.js";
+import { placeModel, placeRepository } from "../../../db/index.js";
+import { badRequestException, conflictException, pagination, successResponse } from "../../../utils/index.js";
 
 class placeService {
 
@@ -17,21 +9,20 @@ class placeService {
 
     createPlace = async (req: Request, res: Response) => {
 
-        const {
-            osmId,
-            name,
-            city,
-            category,
-            description,
-            coordinates
-        } = req.body;
+        const { osmId, name, city, category, description, coordinates, price } = req.body;
 
-        const existingPlace = await this.placeRepo.findOneDocument({
-            osmId
-        });
+        const existingPlace = await this.placeRepo.findOneDocument({ osmId });
+        if (existingPlace) throw new conflictException("Place already exists");
+        if (price < 0) throw new badRequestException("Invalid price");
 
-        if (existingPlace)
-            throw new conflictException("Place already exists");
+        if (
+            !coordinates ||
+            coordinates.type !== "Point" ||
+            !Array.isArray(coordinates.coordinates) ||
+            coordinates.coordinates.length !== 2
+        ) {
+            throw new badRequestException("Invalid coordinates");
+        }
 
         const place = await this.placeRepo.createNewDocument({
             osmId,
@@ -39,96 +30,71 @@ class placeService {
             city,
             category,
             description,
-            coordinates
+            coordinates,
+            price
         } as Partial<IPlace>);
 
-        return res.json(
-            successResponse(
-                "Place created successfully",
-                201,
-                place
-            )
-        );
+        return res.json(successResponse("Place created successfully", 201, place));
     };
 
     getPlaceById = async (req: Request, res: Response) => {
 
         const { id } = req.params as { id: string };
-
         const place = await this.placeRepo.findDocumentById(id);
-
-        if (!place)
-            throw new badRequestException("Place not found");
-
-        return res.json(
-            successResponse(
-                "Place fetched successfully",
-                200,
-                place
-            )
-        );
+        if (!place) throw new badRequestException("Place not found");
+        return res.json(successResponse("Place fetched successfully", 200, place));
     };
 
     getPlaces = async (req: Request, res: Response) => {
 
         const { page, limit } = req.query;
-
-        const { skip, limit: currentLimit } = pagination({
-            page: Number(page),
-            limit: Number(limit)
-        });
-
-        const places = await placeModel
-            .find()
-            .skip(skip)
-            .limit(currentLimit);
-
-        return res.json(
-            successResponse(
-                "Places fetched successfully",
-                200,
-                places
-            )
+        const paginateResult = await this.placeRepo.paginateModel(
+            {},
+            {
+                ...pagination({
+                    page: Number(page),
+                    limit: Number(limit)
+                }),
+                sort: {
+                    createdAt: -1
+                }
+            }
         );
+
+        return res.json(successResponse("Places fetched successfully", 200, paginateResult));
     };
 
     updatePlace = async (req: Request, res: Response) => {
 
         const { id } = req.params as { id: string };
 
-        const {
-            name,
-            city,
-            category,
-            description,
-            coordinates
-        } = req.body;
+        const { name, city, category, description, price, coordinates } = req.body;
 
         const place = await this.placeRepo.findDocumentById(id);
-
-        if (!place)
-            throw new badRequestException("Place not found");
+        if (!place) throw new badRequestException("Place not found");
 
         const updatedData: Partial<IPlace> = {};
 
-        if (name)
-            updatedData.name = name;
-
-        if (city)
-            updatedData.city = city;
-
-        if (category)
-            updatedData.category = category;
-
-        if (description)
-            updatedData.description = description;
-
-        if (coordinates)
+        if (name) updatedData.name = name;
+        if (city) updatedData.city = city;
+        if (category) updatedData.category = category;
+        if (description) updatedData.description = description;
+        if (price !== undefined) {
+            if (price < 0) throw new badRequestException("Invalid price");
+            updatedData.price = price;
+        }
+        if (coordinates) {
+            if (
+                coordinates.type !== "Point" ||
+                !Array.isArray(coordinates.coordinates) ||
+                coordinates.coordinates.length !== 2
+            ) {
+                throw new badRequestException("Invalid coordinates");
+            }
             updatedData.coordinates = coordinates;
+        }
 
-        if (!Object.keys(updatedData).length)
-            throw new badRequestException("No data provided to update");
-
+        if (!Object.keys(updatedData).length) throw new badRequestException("No data provided to update");
         const updatedPlace = await this.placeRepo.findDocumentByIdAndUpdate(
             id,
             {
@@ -139,107 +105,71 @@ class placeService {
             }
         );
 
-        return res.json(
-            successResponse(
-                "Place updated successfully",
-                200,
-                updatedPlace
-            )
-        );
+        return res.json(successResponse("Place updated successfully", 200, updatedPlace));
     };
-
     deletePlace = async (req: Request, res: Response) => {
 
         const { id } = req.params as { id: string };
-
         const place = await this.placeRepo.findDocumentById(id);
-
-        if (!place)
-            throw new badRequestException("Place not found");
-
+        if (!place) throw new badRequestException("Place not found");
         await this.placeRepo.deleteById(id);
-
-        return res.json(
-            successResponse(
-                "Place deleted successfully"
-            )
-        );
+        return res.json(successResponse("Place deleted successfully", 200));
     };
 
     searchPlaces = async (req: Request, res: Response) => {
 
-        const {
-            name,
-            city,
-            category
-        } = req.query;
+        const { name, city, category, price, page, limit } = req.body;
 
         const filter: any = {};
 
         if (name) {
-            filter.name = {
-                $regex: name,
-                $options: "i"
-            };
+            filter.name = { $regex: name, $options: "i" };
         }
 
         if (city) {
-            filter.city = {
-                $regex: city,
-                $options: "i"
-            };
+            filter.city = { $regex: city, $options: "i" };
         }
 
-        if (category) {
-            filter.category = category;
-        }
+        if (category) filter.category = category;
+        if (price) filter.price = Number(price);
 
-        const places = await placeModel.find(filter);
-
-        return res.json(
-            successResponse(
-                "Places fetched successfully",
-                200,
-                places
-            )
+        const paginateResult = await this.placeRepo.paginateModel(
+            filter,
+            {
+                ...pagination({
+                    page: Number(page),
+                    limit: Number(limit)
+                }),
+                sort: {
+                    createdAt: -1
+                }
+            }
         );
+        return res.json(successResponse("Places fetched successfully", 200, paginateResult));
     };
 
     getNearbyPlaces = async (req: Request, res: Response) => {
 
-        const {
-            lng,
-            lat,
-            radius = 5000
-        } = req.query;
+        const { lng, lat, radius = 5000 } = req.query;
+        if (!lng || !lat) throw new badRequestException("Latitude and longitude are required");
 
-        if (!lng || !lat)
-            throw new badRequestException("Latitude and longitude are required");
-
-        const places = await placeModel.find({
-            coordinates: {
-                $near: {
-                    $geometry: {
-                        type: "Point",
-                        coordinates: [
-                            Number(lng),
-                            Number(lat)
-                        ]
-                    },
-                    $maxDistance: Number(radius)
+        const places = await this.placeRepo.findDocuments(
+            {
+                coordinates: {
+                    $near: {
+                        $geometry: {
+                            type: "Point",
+                            coordinates: [
+                                Number(lng),
+                                Number(lat)
+                            ]
+                        },
+                        $maxDistance: Number(radius)
+                    }
                 }
             }
-        });
-
-        return res.json(
-            successResponse(
-                "Nearby places fetched successfully",
-                200,
-                places
-            )
         );
+        return res.json(successResponse("Nearby places fetched successfully", 200, places));
     };
-
 }
-
 export default new placeService();

@@ -1,8 +1,9 @@
 import { Response } from "express";
 import mongoose from "mongoose";
-import { IRequest, ITrip, roleEnum, tripStatusEnum } from "../../../common/index.js";
+import { IRequest, ITrip, roleEnum, tripStatusEnum, verificationStatusEnum } from "../../../common/index.js";
 import { tripModel, tripRepository, placeModel, placeRepository, guideModel, guideRepository, driverModel, driverRepository, vehicleModel, vehicleRepository } from "../../../db/index.js";
 import { badRequestException, forbiddenException, pagination, successResponse } from "../../../utils/index.js";
+import TripPriceService from "../../../utils/services/tripPrice.service.js";
 
 const getUser = (req: IRequest) => { if (!req.loggedInUser) throw new badRequestException("User not authenticated"); return req.loggedInUser.user; };
 
@@ -18,15 +19,7 @@ class tripService {
 
         const user = getUser(req);
 
-        const {
-            places,
-            startDate,
-            endDate,
-            peopleCount,
-            guideId,
-            driverId,
-            vehicleId
-        } = req.body;
+        const { places, startDate, endDate, peopleCount, guideId, driverId, vehicleId } = req.body;
 
         if (!Array.isArray(places) || !places.length)
             throw new badRequestException("Places are required");
@@ -46,98 +39,61 @@ class tripService {
                 throw new badRequestException("Invalid place id");
 
             const place = await this.placeRepo.findDocumentById(placeId);
-
-            if (!place)
-                throw new badRequestException(`Place ${placeId} not found`);
+            if (!place) throw new badRequestException(`Place ${placeId} not found`);
         }
 
         if (guideId) {
 
             const guide = await this.guideRepo.findDocumentById(guideId);
-
-            if (!guide)
-                throw new badRequestException("Guide not found");
-
-            if (!guide.availability)
-                throw new badRequestException("Guide is not available");
+            if (!guide) throw new badRequestException("Guide not found");
+            if (!guide.availability) throw new badRequestException("Guide is not available");
+            if (guide.verificationStatus !== verificationStatusEnum.APPROVED) throw new badRequestException("Guide is not approved");
         }
 
         if (driverId) {
 
             const driver = await this.driverRepo.findDocumentById(driverId);
 
-            if (!driver)
-                throw new badRequestException("Driver not found");
+            if (!driver) throw new badRequestException("Driver not found");
 
-            if (!driver.availability)
-                throw new badRequestException("Driver is not available");
+            if (!driver.availability) throw new badRequestException("Driver is not available");
+
+            if (driver.verificationStatus !== verificationStatusEnum.APPROVED)
+                throw new badRequestException("Driver is not approved");
         }
 
         if (vehicleId) {
 
             const vehicle = await this.vehicleRepo.findDocumentById(vehicleId);
-
-            if (!vehicle)
-                throw new badRequestException("Vehicle not found");
-
+            if (!vehicle) throw new badRequestException("Vehicle not found");
             if (vehicle.capacity < Number(peopleCount))
                 throw new badRequestException("Vehicle capacity is not enough");
         }
 
-        const days = Math.max(
-            1,
-            Math.ceil(
-                (new Date(endDate).getTime() - new Date(startDate).getTime())
-                / (1000 * 60 * 60 * 24)
-            )
-        );
-
-        let price = 50 * days;
-
-        if (guideId)
-            price += 100 * days;
-
-        if (driverId)
-            price += 80 * days;
-
-        if (vehicleId)
-            price += 60 * days;
-
-        const finalPrice = Math.round(
-            price * (1 + (Number(peopleCount) - 1) * 0.1)
+        const finalPrice = await TripPriceService.calculateTripPrice(
+            places,
+            startDate,
+            endDate,
+            peopleCount,
+            guideId,
+            driverId,
+            vehicleId
         );
 
         const trip = await this.tripRepo.createNewDocument({
-
             touristId: user._id,
-
             places,
-
             guideId,
-
             driverId,
-
             vehicleId,
-
             startDate,
-
             endDate,
-
             peopleCount,
-
             price: finalPrice,
-
             status: tripStatusEnum.PENDING
-
         } as Partial<ITrip>);
 
-        return res.status(201).json(
-            successResponse(
-                "Trip created successfully",
-                201,
-                trip
-            )
-        );
+        return res.status(201).json(successResponse("Trip created successfully", 201, trip));
     };
     getTripById = async (req: IRequest, res: Response) => {
 
