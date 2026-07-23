@@ -28,4 +28,12 @@ adminRouter.patch("/driver/:id/verification-status", authentication, authorizati
 // Update Guide Verification Status
 adminRouter.patch("/guide/:id/verification-status", authentication, authorization([roleEnum.ADMIN]), adminService.updateGuideVerificationStatus);
 
+// Assign Trip Resources
+adminRouter.patch("/trip/:id/assign-resources", authentication, authorization([roleEnum.ADMIN]), adminService.assignTripResources);
+
+// Update Trip Status
+adminRouter.patch("/trip/:id/status", authentication, authorization([roleEnum.ADMIN]), adminService.updateTripStatus);
+
+// Confirm Trip Payment
+adminRouter.patch("/trip/:id/confirm-payment", authentication, authorization([roleEnum.ADMIN]), adminService.confirmTripPayment);
 export { adminRouter };

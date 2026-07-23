@@ -1,6 +1,6 @@
 import { Response } from "express";
-import { IRequest, lostItemStatusEnum, roleEnum, statusUserEnum, tripStatusEnum, verificationStatusEnum } from "../../../common/index.js";
-import { driverModel, driverRepository, guideModel, guideRepository, lostItemModel, lostItemRepository, placeModel, placeRepository, reviewModel, reviewRepository, tripModel, tripRepository, userModel, userRepository, voteModel, voteRepository } from "../../../db/index.js";
+import { IRequest, ITrip, lostItemStatusEnum, roleEnum, statusUserEnum, tripStatusEnum, verificationStatusEnum } from "../../../common/index.js";
+import { driverModel, driverRepository, guideModel, guideRepository, lostItemModel, lostItemRepository, placeModel, placeRepository, reviewModel, reviewRepository, tripModel, tripRepository, userModel, userRepository, vehicleModel, vehicleRepository, voteModel, voteRepository } from "../../../db/index.js";
 import { badRequestException, deleteFileFromCloudinary, successResponse, unauthorizedException } from "../../../utils/index.js";
 import mongoose from "mongoose";
 
@@ -15,6 +15,7 @@ class adminService {
     private guideRepo = new guideRepository(guideModel);
     private driverRepo = new driverRepository(driverModel);
     private lostItemRepo = new lostItemRepository(lostItemModel);
+    private vehicleRepo = new vehicleRepository(vehicleModel);
 
     dashboard = async (req: IRequest, res: Response) => {
 
@@ -261,6 +262,216 @@ class adminService {
             }
         );
         return res.json(successResponse(`Guide ${verificationStatus.toLowerCase()} successfully`, 200, updatedGuide));
+    };
+    assignTripResources = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+
+        if (!mongoose.isValidObjectId(id)) throw new badRequestException("Invalid trip id");
+
+        const { guideId, driverId, vehicleId } = req.body;
+
+        const trip = await this.tripRepo.findDocumentById(id);
+        if (!trip) throw new badRequestException("Trip not found");
+
+        const updatedData: Partial<ITrip> = {};
+        if (guideId) {
+
+            if (!mongoose.isValidObjectId(guideId))
+                throw new badRequestException("Invalid guide id");
+
+            const guide = await this.guideRepo.findDocumentById(guideId);
+            if (!guide) throw new badRequestException("Guide not found");
+            if (!guide.availability) throw new badRequestException("Guide is not available");
+            updatedData.guideId = guideId;
+        }
+
+        if (driverId) {
+
+            if (!mongoose.isValidObjectId(driverId))
+                throw new badRequestException("Invalid driver id");
+
+            const driver = await this.driverRepo.findDocumentById(driverId);
+            if (!driver) throw new badRequestException("Driver not found");
+            if (!driver.availability) throw new badRequestException("Driver is not available");
+
+            updatedData.driverId = driverId;
+        }
+
+        if (vehicleId) {
+
+            if (!mongoose.isValidObjectId(vehicleId))
+                throw new badRequestException("Invalid vehicle id");
+
+            const vehicle = await this.vehicleRepo.findDocumentById(vehicleId);
+            if (!vehicle) throw new badRequestException("Vehicle not found");
+            if (vehicle.capacity < trip.peopleCount) throw new badRequestException("Vehicle capacity is not enough");
+            updatedData.vehicleId = vehicleId;
+        }
+        if (!Object.keys(updatedData).length)
+            throw new badRequestException("No data provided");
+
+        const updatedTrip = await this.tripRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                $set: updatedData
+            },
+            {
+                new: true
+            }
+        );
+        if (guideId) {
+            await this.guideRepo.findDocumentByIdAndUpdate(
+                guideId,
+                {
+                    availability: false
+                }
+            );
+        }
+        if (driverId) {
+            await this.driverRepo.findDocumentByIdAndUpdate(
+                driverId,
+                {
+                    availability: false
+                }
+            );
+        }
+        return res.json(successResponse("Trip resources assigned successfully", 200, updatedTrip));
+    };
+    updateTripStatus = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid trip id");
+
+        const { status } = req.body;
+
+        if (!Object.values(tripStatusEnum).includes(status))
+            throw new badRequestException("Invalid trip status");
+
+        const trip = await this.tripRepo.findDocumentById(id);
+
+        if (!trip) throw new badRequestException("Trip not found");
+
+        switch (status) {
+
+            case tripStatusEnum.CONFIRMED:
+
+                if (trip.status !== tripStatusEnum.PENDING)
+                    throw new badRequestException("Only pending trips can be confirmed");
+                break;
+
+            case tripStatusEnum.ONGOING:
+                if (trip.status !== tripStatusEnum.CONFIRMED)
+                    throw new badRequestException("Only confirmed trips can be started");
+
+                if (!trip.guideId)
+                    throw new badRequestException("Guide is required");
+
+                if (!trip.driverId)
+                    throw new badRequestException("Driver is required");
+
+                if (!trip.vehicleId)
+                    throw new badRequestException("Vehicle is required");
+
+                break;
+
+            case tripStatusEnum.COMPLETED:
+
+                if (trip.status !== tripStatusEnum.ONGOING)
+                    throw new badRequestException("Only ongoing trips can be completed");
+
+                break;
+
+            case tripStatusEnum.CANCELLED:
+
+                if (
+                    trip.status === tripStatusEnum.COMPLETED ||
+                    trip.status === tripStatusEnum.CANCELLED
+                )
+                    throw new badRequestException(`Cannot cancel trip with status ${trip.status}`);
+
+                break;
+
+            default:
+                throw new badRequestException("Invalid status");
+        }
+
+        const updatedTrip = await this.tripRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                status
+            },
+            {
+                new: true
+            }
+        );
+
+        if (status === tripStatusEnum.COMPLETED) {
+
+            if (trip.guideId) {
+                await this.guideRepo.findDocumentByIdAndUpdate(
+                    trip.guideId,
+                    {
+                        availability: true
+                    }
+                );
+            }
+            if (trip.driverId) {
+                await this.driverRepo.findDocumentByIdAndUpdate(
+                    trip.driverId,
+                    {
+                        availability: true
+                    }
+                );
+            }
+        }
+        if (status === tripStatusEnum.CANCELLED) {
+
+            if (trip.guideId) {
+                await this.guideRepo.findDocumentByIdAndUpdate(
+                    trip.guideId,
+                    {
+                        availability: true
+                    }
+                );
+            }
+            if (trip.driverId) {
+                await this.driverRepo.findDocumentByIdAndUpdate(
+                    trip.driverId,
+                    {
+                        availability: true
+                    }
+                );
+            }
+        }
+        return res.json(successResponse(`Trip ${status.toLowerCase()} successfully`, 200, updatedTrip));
+    };
+    confirmTripPayment = async (req: IRequest, res: Response) => {
+
+        const { id } = req.params as { id: string };
+        const { isPaid } = req.body;
+
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid trip id");
+
+        if (typeof isPaid !== "boolean")
+            throw new badRequestException("isPaid must be true or false");
+
+        const trip = await this.tripRepo.findDocumentById(id);
+        if (!trip) throw new badRequestException("Trip not found");
+
+        const updatedTrip = await this.tripRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                isPaid
+            },
+            {
+                new: true
+            }
+        );
+        return res.json(successResponse(`Trip payment ${isPaid ? "confirmed" : "cancelled"} successfully`, 200, updatedTrip));
     };
 }
 
