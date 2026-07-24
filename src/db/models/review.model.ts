@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 import { IReview } from "../../common/index.js";
+import { PaginateModel } from "mongoose";
 
 const reviewSchema = new mongoose.Schema<IReview>(
     {
@@ -41,11 +43,14 @@ const reviewSchema = new mongoose.Schema<IReview>(
             type: String,
             default: "",
             trim: true
-        }
+        },
+        
     },
     {
         timestamps: true
     }
 );
 
-export const reviewModel = mongoose.model<IReview>("Review", reviewSchema);
+reviewSchema.plugin(mongoosePaginate);
+
+export const reviewModel = mongoose.model<IReview, PaginateModel<IReview>>("Review", reviewSchema);
