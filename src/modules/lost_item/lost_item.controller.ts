@@ -7,37 +7,25 @@ import { fileTypes, roleEnum } from "../../common/index.js";
 
 const lostItemRouter = Router();
 
-// Get my lost items
-lostItemRouter.get("/my-items", authentication, lostItemService.getMyLostItems);
-
-// Get trip lost items
-lostItemRouter.get("/trip/:tripId", authentication, lostItemService.getTripLostItems);
-
-// Get lost item by id
-lostItemRouter.get("/:id", authentication, lostItemService.getLostItem);
-
 // Create lost item
-lostItemRouter.post("/", authentication, authorization([roleEnum.TOURIST]), lostItemService.createLostItem);
+lostItemRouter.post("/create_lost_item", authentication, lostItemService.createLostItem);
 
-// Update lost item
-lostItemRouter.patch("/:id", authentication, authorization([roleEnum.TOURIST]), lostItemService.updateLostItem);
-
-// Delete lost item
-lostItemRouter.delete("/:id", authentication, authorization([roleEnum.TOURIST, roleEnum.ADMIN]), lostItemService.deleteLostItem);
+// Update lost item 
+lostItemRouter.patch("/:id/update", authentication, lostItemService.updateLostItem);
 
 // Update lost item status
-lostItemRouter.patch("/:id/status", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), lostItemService.updateLostItemStatus);
+lostItemRouter.patch("/:id/status", authentication, lostItemService.updateLostItemStatus);
 
-// Report item as found
-lostItemRouter.patch("/:id/found", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), lostItemService.reportFoundItem);
+// Delete lost item
+lostItemRouter.delete("/:id/delete", authentication, lostItemService.deleteLostItem);
 
-// Close lost item
-lostItemRouter.patch("/:id/close", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), lostItemService.closeLostItem);
+// Get lost item
+lostItemRouter.get("/get/:id", authentication, lostItemService.getLostItem);
 
-// Reopen lost item
-lostItemRouter.patch("/:id/reopen", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), lostItemService.reopenLostItem);
+// Get trip lost items
+lostItemRouter.get("/:tripId/trip_lost_items", authentication, lostItemService.getTripLostItems);
 
-// Upload lost item image
-lostItemRouter.post("/:id/image", authentication, authorization([roleEnum.TOURIST]), hostUpload([fileTypes.IMAGE]).single("image"), lostItemService.uploadLostItemImage);
+// Get my lost items    
+lostItemRouter.get("/my_lost_items", authentication, lostItemService.getMyLostItems);
 
 export { lostItemRouter };

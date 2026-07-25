@@ -1,154 +1,103 @@
 import { Response } from "express";
 import mongoose from "mongoose";
 import { IRequest } from "../../../common/index.js";
-import {
-    notificationModel,
-    notificationRepository,
-    userModel,
-    userRepository
-} from "../../../db/index.js";
-import { badRequestException, successResponse } from "../../../utils/index.js";
-
-const getUser = (req: IRequest) => {
-    if (!req.loggedInUser) {
-        throw new badRequestException("User not authenticated");
-    }
-
-    return req.loggedInUser.user;
-};
+import { notificationModel, notificationRepository, userModel, userRepository } from "../../../db/index.js";
+import { badRequestException, pagination, successResponse } from "../../../utils/index.js";
 
 class notificationService {
 
     private notificationRepo = new notificationRepository(notificationModel);
     private userRepo = new userRepository(userModel);
 
-    createNotification = async (req: IRequest, res: Response) => {
-
-        const user = getUser(req);
-
-        const { receiverId, title, message } = req.body;
-
-        if (!mongoose.isValidObjectId(receiverId)) {
-            throw new badRequestException("Invalid receiver id");
-        }
-
-        if (receiverId === user._id.toString()) {
-            throw new badRequestException("You can't send notification to yourself");
-        }
-
-        const receiver = await this.userRepo.findDocumentById(receiverId);
-
-        if (!receiver) {
-            throw new badRequestException("Receiver not found");
-        }
-
-        const notification = await this.notificationRepo.createNewDocument({
-            senderId: user._id,
-            receiverId,
-            title,
-            message
-        });
-
-        if (!notification) {
-            throw new badRequestException("Failed to create notification");
-        }
-
-        return res.status(201).json(
-            successResponse(
-                "Notification created successfully",
-                201,
-                notification
-            )
-        );
-    };
-
     getNotifications = async (req: IRequest, res: Response) => {
+        const user = req.loggedInUser!.user;
+        const { page, limit } = req.query;
 
-        const user = getUser(req);
-
+        const { skip, limit: currentLimit } = pagination({
+            page: Number(page),
+            limit: Number(limit)
+        });
+      
         const notifications = await this.notificationRepo.findDocuments(
             {
                 receiverId: user._id
             },
-            undefined,
+            {},
             {
-                sort: { createdAt: -1 }
+                populate: [
+                    {
+                        path: "senderId",
+                        select: "name email profileImage"
+                    }
+                ],
+                sort: {
+                    createdAt: -1
+                },
+                skip,
+                limit: currentLimit
             }
         );
 
-        return res.json(
-            successResponse(
-                "Notifications fetched successfully",
-                200,
-                notifications
-            )
-        );
+        const unreadCount = await this.notificationRepo.countDocuments({ receiverId: user._id, isRead: false });
+        return res.json(successResponse("Notifications fetched successfully", 200, { unreadCount, notifications }));
     };
-
     getNotificationById = async (req: IRequest, res: Response) => {
 
-        const id = req.params.id as string;
+        if (!req.loggedInUser) throw new badRequestException("User not authenticated");
+        const user = req.loggedInUser.user;
+        const { id } = req.params as { id: string; };
 
-        if (!mongoose.isValidObjectId(id)) {
+        if (!mongoose.isValidObjectId(id))
             throw new badRequestException("Invalid notification id");
-        }
 
-        const user = getUser(req);
-
-        const notification = await this.notificationRepo.findOneDocument({
-            _id: id,
-            receiverId: user._id
-        });
-
-        if (!notification) {
-            throw new badRequestException("Notification not found");
-        }
-
-        return res.json(
-            successResponse(
-                "Notification fetched successfully",
-                200,
-                notification
-            )
+        const notification = await this.notificationRepo.findOneDocument(
+            {
+                _id: id,
+                receiverId: user._id
+            },
+            {},
+            {
+                populate: [
+                    {
+                        path: "senderId",
+                        select: "name email profileImage"
+                    }
+                ]
+            }
         );
+        if (!notification) throw new badRequestException("Notification not found");
+        return res.json(successResponse("Notification fetched successfully", 200, notification));
     };
 
     markNotificationAsRead = async (req: IRequest, res: Response) => {
 
-        const id = req.params.id as string;
-
-        if (!mongoose.isValidObjectId(id)) {
-            throw new badRequestException("Invalid notification id");
-        }
-
-        const user = getUser(req);
+        const user = req.loggedInUser!.user;
+        const { id } = req.params as { id: string; };
+        if (!mongoose.isValidObjectId(id)) throw new badRequestException("Invalid notification id");
 
         const notification = await this.notificationRepo.findOneDocument({
             _id: id,
             receiverId: user._id
         });
 
-        if (!notification) {
-            throw new badRequestException("Notification not found");
-        }
+        if (!notification) throw new badRequestException("Notification not found");
 
-        notification.isRead = true;
-        await notification.save();
-
-        return res.json(
-            successResponse(
-                "Notification marked as read",
-                200,
-                notification
-            )
-        );
+        const updatedNotification =
+            await this.notificationRepo.findDocumentByIdAndUpdate(
+                id,
+                {
+                    isRead: true
+                },
+                {
+                    new: true
+                }
+            );
+        return res.json(successResponse("Notification marked as read", 200, updatedNotification));
     };
-
     markAllNotificationsAsRead = async (req: IRequest, res: Response) => {
 
-        const user = getUser(req);
-
-        const result = await this.notificationRepo.updateMultipleDocument(
+        const user = req.loggedInUser!.user;
+        await this.notificationRepo.updateMultipleDocument(
             {
                 receiverId: user._id,
                 isRead: false
@@ -159,85 +108,21 @@ class notificationService {
                 }
             }
         );
-
-        if (result.modifiedCount === 0) {
-            throw new badRequestException("No unread notifications found");
-        }
-
-        return res.json(
-            successResponse(
-                "All notifications marked as read",
-                200,
-                result
-            )
-        );
+        return res.json(successResponse("All notifications marked as read", 200));
     };
-
     deleteNotification = async (req: IRequest, res: Response) => {
 
-        const id = req.params.id as string;
+        const user = req.loggedInUser!.user;
+        const { id } = req.params as { id: string; };
 
-        if (!mongoose.isValidObjectId(id)) {
-            throw new badRequestException("Invalid notification id");
-        }
-
-        const user = getUser(req);
+        if (!mongoose.isValidObjectId(id)) throw new badRequestException("Invalid notification id");
 
         const notification = await this.notificationRepo.findAndDeleteDocument({
             _id: id,
             receiverId: user._id
         });
-
-        if (!notification) {
-            throw new badRequestException("Notification not found");
-        }
-
-        return res.json(
-            successResponse(
-                "Notification deleted successfully",
-                200,
-                notification
-            )
-        );
-    };
-
-    deleteAllNotifications = async (req: IRequest, res: Response) => {
-
-        const user = getUser(req);
-
-        const result = await this.notificationRepo.deleteMultipleDocument({
-            receiverId: user._id
-        });
-
-        if (!result.deletedCount) {
-            throw new badRequestException("No notifications found");
-        }
-
-        return res.json(
-            successResponse(
-                "All notifications deleted successfully",
-                200,
-                result
-            )
-        );
-    };
-
-    getUnreadCount = async (req: IRequest, res: Response) => {
-
-        const user = getUser(req);
-
-        const count = await this.notificationRepo.countDocuments({
-            receiverId: user._id,
-            isRead: false
-        });
-
-        return res.json(
-            successResponse(
-                "Unread notifications count fetched successfully",
-                200,
-                { count }
-            )
-        );
+        if (!notification) throw new badRequestException("Notification not found");
+        return res.json(successResponse("Notification deleted successfully", 200, notification));
     };
 }
 

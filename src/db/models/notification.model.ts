@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { PaginateModel } from "mongoose";
+import mongoosePaginate from "mongoose-paginate-v2";
 import { INotification } from "../../common/index.js";
 
 const notificationSchema = new mongoose.Schema<INotification>(
@@ -35,4 +36,6 @@ const notificationSchema = new mongoose.Schema<INotification>(
     }
 );
 
-export const notificationModel = mongoose.model<INotification>("Notification", notificationSchema);
+
+notificationSchema.plugin(mongoosePaginate);
+export const notificationModel = mongoose.model<INotification , PaginateModel<INotification>>("Notification", notificationSchema);

@@ -1,10 +1,11 @@
 import { Response } from "express";
 import mongoose from "mongoose";
 import { IRequest, ITrip, roleEnum, tripStatusEnum, verificationStatusEnum } from "../../../common/index.js";
-import { tripModel, tripRepository, placeModel, placeRepository, guideModel, guideRepository, driverModel, driverRepository, vehicleModel, vehicleRepository } from "../../../db/index.js";
+import { tripModel, tripRepository, placeModel, placeRepository, guideModel, guideRepository, driverModel, driverRepository, vehicleModel, vehicleRepository, notificationRepository, notificationModel } from "../../../db/index.js";
 import { badRequestException, forbiddenException, pagination, successResponse } from "../../../utils/index.js";
 import TripPriceService from "../../../utils/services/tripPrice.service.js";
-
+import { sendNotification } from "../../../socket/sendNotification.js";
+import notificationService from "../../../utils/services/createnotification.service.js";
 
 class tripService {
 
@@ -13,13 +14,21 @@ class tripService {
     private guideRepo = new guideRepository(guideModel);
     private driverRepo = new driverRepository(driverModel);
     private vehicleRepo = new vehicleRepository(vehicleModel);
+    private notificationRepo = new notificationRepository(notificationModel);
 
     createTrip = async (req: IRequest, res: Response) => {
 
-
         const user = req.loggedInUser!.user;
 
-        const { places, startDate, endDate, peopleCount, guideId, driverId, vehicleId } = req.body;
+        const {
+            places,
+            startDate,
+            endDate,
+            peopleCount,
+            guideId,
+            driverId,
+            vehicleId
+        } = req.body;
 
         if (!Array.isArray(places) || !places.length)
             throw new badRequestException("Places are required");
@@ -39,32 +48,55 @@ class tripService {
                 throw new badRequestException("Invalid place id");
 
             const place = await this.placeRepo.findDocumentById(placeId);
-            if (!place) throw new badRequestException(`Place ${placeId} not found`);
+
+            if (!place)
+                throw new badRequestException(`Place ${placeId} not found`);
+
         }
+
+        let guide = null;
+        let driver = null;
 
         if (guideId) {
 
-            const guide = await this.guideRepo.findDocumentById(guideId);
-            if (!guide) throw new badRequestException("Guide not found");
-            if (!guide.availability) throw new badRequestException("Guide is not available");
-            if (guide.verificationStatus !== verificationStatusEnum.APPROVED) throw new badRequestException("Guide is not approved");
+            guide = await this.guideRepo.findDocumentById(guideId);
+
+            if (!guide)
+                throw new badRequestException("Guide not found");
+
+            if (!guide.availability)
+                throw new badRequestException("Guide is not available");
+
+            if (guide.verificationStatus !== verificationStatusEnum.APPROVED)
+                throw new badRequestException("Guide is not approved");
+
         }
 
         if (driverId) {
 
-            const driver = await this.driverRepo.findDocumentById(driverId);
-            if (!driver) throw new badRequestException("Driver not found");
-            if (!driver.availability) throw new badRequestException("Driver is not available");
+            driver = await this.driverRepo.findDocumentById(driverId);
+
+            if (!driver)
+                throw new badRequestException("Driver not found");
+
+            if (!driver.availability)
+                throw new badRequestException("Driver is not available");
+
             if (driver.verificationStatus !== verificationStatusEnum.APPROVED)
                 throw new badRequestException("Driver is not approved");
+
         }
 
         if (vehicleId) {
 
             const vehicle = await this.vehicleRepo.findDocumentById(vehicleId);
-            if (!vehicle) throw new badRequestException("Vehicle not found");
+
+            if (!vehicle)
+                throw new badRequestException("Vehicle not found");
+
             if (vehicle.capacity < Number(peopleCount))
                 throw new badRequestException("Vehicle capacity is not enough");
+
         }
 
         const finalPrice = await TripPriceService.calculateTripPrice(
@@ -78,6 +110,7 @@ class tripService {
         );
 
         const trip = await this.tripRepo.createNewDocument({
+
             touristId: user._id,
             places,
             guideId,
@@ -88,8 +121,57 @@ class tripService {
             peopleCount,
             price: finalPrice,
             status: tripStatusEnum.PENDING
+
         } as Partial<ITrip>);
+
+
+        if (guide) {
+
+            await notificationService.createNotification({
+
+                senderId: user._id.toString(),
+
+                receiverId: guide.userId.toString(),
+
+                title: "New Trip",
+
+                message: "A new trip has been assigned to you."
+
+            });
+
+            sendNotification(
+
+                guide.userId.toString(),
+
+                {
+
+                    title: "New Trip",
+
+                    message: "A new trip has been assigned to you."
+
+                }
+
+            );
+
+        }
+        if (driver) {
+
+            await notificationService.createNotification({
+                senderId: user._id.toString(),
+                receiverId: driver.userId.toString(),
+                title: "New Trip",
+                message: "A new trip has been assigned to you."
+            });
+            sendNotification(
+                driver.userId.toString(),
+                {
+                    title: "New Trip",
+                    message: "A new trip has been assigned to you."
+                }
+            );
+        }
         return res.status(201).json(successResponse("Trip created successfully", 201, trip));
+
     };
     getTripById = async (req: IRequest, res: Response) => {
 
@@ -289,65 +371,148 @@ class tripService {
     };
     cancelTrip = async (req: IRequest, res: Response) => {
 
-        if (!req.loggedInUser) throw new badRequestException("User not authenticated");
+        if (!req.loggedInUser)
+            throw new badRequestException("User not authenticated");
 
         const user = req.loggedInUser.user;
 
         const { id } = req.params as { id: string };
 
-        if (!mongoose.isValidObjectId(id)) throw new badRequestException("Invalid trip id");
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid trip id");
 
         const trip = await this.tripRepo.findDocumentById(id);
-        if (!trip) throw new badRequestException("Trip not found");
+
+        if (!trip)
+            throw new badRequestException("Trip not found");
+
         if (
             trip.touristId.toString() !== user._id.toString() &&
             user.role !== roleEnum.ADMIN
         ) {
             throw new forbiddenException("You do not have permission");
         }
+
         if (
             trip.status === tripStatusEnum.COMPLETED ||
             trip.status === tripStatusEnum.CANCELLED
         ) {
             throw new badRequestException("Trip cannot be cancelled");
         }
+
         await this.tripRepo.findDocumentByIdAndUpdate(
             id,
             {
                 status: tripStatusEnum.CANCELLED
             }
         );
+
+
         if (trip.guideId) {
+
+            const guide = await this.guideRepo.findDocumentById(
+                trip.guideId
+            );
+
             await this.guideRepo.findDocumentByIdAndUpdate(
                 trip.guideId,
                 {
                     availability: true
                 }
             );
+
+            if (guide) {
+
+                await notificationService.createNotification({
+
+                    senderId: user._id.toString(),
+
+                    receiverId: guide.userId.toString(),
+
+                    title: "Trip Cancelled",
+
+                    message: "The assigned trip has been cancelled."
+
+                });
+
+                sendNotification(
+
+                    guide.userId.toString(),
+
+                    {
+
+                        title: "Trip Cancelled",
+
+                        message: "The assigned trip has been cancelled."
+
+                    }
+
+                );
+
+            }
+
         }
+
         if (trip.driverId) {
+
+            const driver = await this.driverRepo.findDocumentById(
+                trip.driverId
+            );
+
             await this.driverRepo.findDocumentByIdAndUpdate(
                 trip.driverId,
                 {
                     availability: true
                 }
             );
+
+            if (driver) {
+
+                await notificationService.createNotification({
+
+                    senderId: user._id.toString(),
+
+                    receiverId: driver.userId.toString(),
+
+                    title: "Trip Cancelled",
+
+                    message: "The assigned trip has been cancelled."
+
+                });
+
+                sendNotification(
+                    driver.userId.toString(),
+                    {
+
+                        title: "Trip Cancelled",
+
+                        message: "The assigned trip has been cancelled."
+
+                    }
+                );
+            }
         }
         return res.json(successResponse("Trip cancelled successfully", 200));
     };
     joinSharedTrip = async (req: IRequest, res: Response) => {
 
-        if (!req.loggedInUser) throw new badRequestException("User not authenticated");
+        if (!req.loggedInUser)
+            throw new badRequestException("User not authenticated");
+
         const user = req.loggedInUser.user;
+
         const { id } = req.params as { id: string };
 
         if (!mongoose.isValidObjectId(id))
             throw new badRequestException("Invalid trip id");
 
         const { peopleCount = 1 } = req.body;
+
         const trip = await this.tripRepo.findDocumentById(id);
-        if (!trip) throw new badRequestException("Trip not found");
-        
+
+        if (!trip)
+            throw new badRequestException("Trip not found");
+
         if (trip.status !== tripStatusEnum.CONFIRMED)
             throw new badRequestException("Only confirmed trips can be joined");
 
@@ -355,45 +520,102 @@ class tripService {
             throw new badRequestException("You cannot join your own trip");
 
         const alreadyJoined = await this.tripRepo.findOneDocument({
+
             sharedTripId: trip._id,
+
             touristId: user._id
+
         });
-        if (alreadyJoined) throw new badRequestException("You already joined this trip");
+
+        if (alreadyJoined)
+            throw new badRequestException("You already joined this trip");
+
         let totalPeople = trip.peopleCount;
+
         const joinedTrips = await this.tripRepo.findDocuments({
+
             sharedTripId: trip._id
+
         });
+
         joinedTrips.forEach(item => {
+
             totalPeople += item.peopleCount;
+
         });
 
         totalPeople += Number(peopleCount);
+
         if (trip.vehicleId) {
 
             const vehicle = await this.vehicleRepo.findDocumentById(
                 trip.vehicleId
             );
 
-            if (!vehicle) throw new badRequestException("Vehicle not found");
-            if (totalPeople > vehicle.capacity) throw new badRequestException("Vehicle capacity exceeded");
+            if (!vehicle)
+                throw new badRequestException("Vehicle not found");
+
+            if (totalPeople > vehicle.capacity)
+                throw new badRequestException("Vehicle capacity exceeded");
+
         }
+
         const joinedTrip = await this.tripRepo.createNewDocument({
 
             touristId: user._id,
+
             sharedTripId: trip._id,
+
             places: trip.places,
+
             guideId: trip.guideId,
+
             driverId: trip.driverId,
+
             vehicleId: trip.vehicleId,
+
             startDate: trip.startDate,
+
             endDate: trip.endDate,
+
             peopleCount,
+
             price: trip.price,
+
             status: trip.status,
+
             routePath: trip.routePath
+
         } as Partial<ITrip>);
+
+        await notificationService.createNotification({
+
+            senderId: user._id.toString(),
+
+            receiverId: trip.touristId.toString(),
+
+            title: "Shared Trip",
+
+            message: `${user.name} joined your shared trip.`
+
+        });
+
+        sendNotification(
+
+            trip.touristId.toString(),
+
+            {
+
+                title: "Shared Trip",
+
+                message: `${user.name} joined your shared trip.`
+
+            }
+
+        );
         return res.status(201).json(successResponse("Joined trip successfully", 201, joinedTrip));
     };
+
 }
 
 export default new tripService();

@@ -3,6 +3,9 @@ import { IRequest, ITrip, lostItemStatusEnum, roleEnum, statusUserEnum, tripStat
 import { driverModel, driverRepository, guideModel, guideRepository, lostItemModel, lostItemRepository, placeModel, placeRepository, reviewModel, reviewRepository, tripModel, tripRepository, userModel, userRepository, vehicleModel, vehicleRepository, voteModel, voteRepository } from "../../../db/index.js";
 import { badRequestException, deleteFileFromCloudinary, successResponse, unauthorizedException } from "../../../utils/index.js";
 import mongoose from "mongoose";
+import notificationService from "../../../utils/services/createnotification.service.js";
+import { sendNotification } from "../../../socket/sendNotification.js";
+
 
 
 class adminService {
@@ -174,25 +177,86 @@ class adminService {
 
         const { id } = req.params as { id: string };
         const { verificationStatus } = req.body;
-        if (!mongoose.isValidObjectId(id)) throw new badRequestException("Invalid driver id");
 
-        if (verificationStatus !== verificationStatusEnum.APPROVED && verificationStatus !== verificationStatusEnum.REJECTED) {
-            throw new badRequestException("verificationStatus must be APPROVED or REJECTED");
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid driver id");
+
+        if (
+            verificationStatus !== verificationStatusEnum.APPROVED &&
+            verificationStatus !== verificationStatusEnum.REJECTED
+        ) {
+            throw new badRequestException(
+                "verificationStatus must be APPROVED or REJECTED"
+            );
         }
 
         const driver = await this.driverRepo.findDocumentById(id);
-        if (!driver) throw new badRequestException("Driver not found");
+
+        if (!driver)
+            throw new badRequestException("Driver not found");
+
         if (driver.verificationStatus === verificationStatus) {
-            throw new badRequestException(`Driver already ${verificationStatus.toLowerCase()}`);
+            throw new badRequestException(
+                `Driver already ${verificationStatus.toLowerCase()}`
+            );
         }
 
-        await this.driverRepo.findDocumentByIdAndUpdate(id, { verificationStatus })
+        await this.driverRepo.findDocumentByIdAndUpdate(
+            id,
+            {
+                verificationStatus
+            }
+        );
+
         if (verificationStatus === verificationStatusEnum.APPROVED) {
-            await this.userRepo.findDocumentByIdAndUpdate(driver.userId, { role: roleEnum.DRIVER });
+
+            await this.userRepo.findDocumentByIdAndUpdate(
+                driver.userId,
+                {
+                    role: roleEnum.DRIVER
+                }
+            );
+
+            await notificationService.createNotification({
+                receiverId: driver.userId.toString(),
+                title: "Driver Verification",
+                message: "Congratulations! Your driver account has been approved."
+            });
+
+            sendNotification(
+                driver.userId.toString(),
+                {
+                    title: "Driver Verification",
+                    message: "Congratulations! Your driver account has been approved."
+                }
+            );
+
         }
+
         if (verificationStatus === verificationStatusEnum.REJECTED) {
-            await this.userRepo.findDocumentByIdAndUpdate(driver.userId, { role: roleEnum.TOURIST });
+
+            await this.userRepo.findDocumentByIdAndUpdate(
+                driver.userId,
+                {
+                    role: roleEnum.TOURIST
+                }
+            );
+
+            await notificationService.createNotification({
+                receiverId: driver.userId.toString(),
+                title: "Driver Verification",
+                message: "Unfortunately, your driver account has been rejected."
+            });
+
+            sendNotification(
+                driver.userId.toString(),
+                {
+                    title: "Driver Verification",
+                    message: "Unfortunately, your driver account has been rejected."
+                }
+            );
         }
+
         const updatedDriver = await this.driverRepo.findDocumentById(
             id,
             {},
@@ -203,23 +267,36 @@ class adminService {
                 }
             }
         );
-        return res.json(successResponse(`Driver ${verificationStatus.toLowerCase()} successfully`, 200, updatedDriver));
+
+        return res.json(
+            successResponse(
+                `Driver ${verificationStatus.toLowerCase()} successfully`,
+                200,
+                updatedDriver
+            )
+        );
     };
     updateGuideVerificationStatus = async (req: IRequest, res: Response) => {
 
         const { id } = req.params as { id: string };
         const { verificationStatus } = req.body;
 
-        if (!mongoose.isValidObjectId(id)) throw new badRequestException("Invalid guide id");
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid guide id");
 
-        if (verificationStatus !== verificationStatusEnum.APPROVED && verificationStatus !== verificationStatusEnum.REJECTED) {
+        if (
+            verificationStatus !== verificationStatusEnum.APPROVED &&
+            verificationStatus !== verificationStatusEnum.REJECTED
+        ) {
             throw new badRequestException(
                 "verificationStatus must be APPROVED or REJECTED"
             );
         }
 
         const guide = await this.guideRepo.findDocumentById(id);
-        if (!guide) throw new badRequestException("Guide not found");
+
+        if (!guide)
+            throw new badRequestException("Guide not found");
 
         if (guide.verificationStatus === verificationStatus) {
             throw new badRequestException(
@@ -235,22 +312,53 @@ class adminService {
         );
 
         if (verificationStatus === verificationStatusEnum.APPROVED) {
+
             await this.userRepo.findDocumentByIdAndUpdate(
                 guide.userId,
                 {
                     role: roleEnum.GUIDE
                 }
             );
+
+            await notificationService.createNotification({
+                receiverId: guide.userId.toString(),
+                title: "Guide Verification",
+                message: "Congratulations! Your guide account has been approved."
+            });
+
+            sendNotification(
+                guide.userId.toString(),
+                {
+                    title: "Guide Verification",
+                    message: "Congratulations! Your guide account has been approved."
+                }
+            );
         }
 
         if (verificationStatus === verificationStatusEnum.REJECTED) {
+
             await this.userRepo.findDocumentByIdAndUpdate(
                 guide.userId,
                 {
                     role: roleEnum.TOURIST
                 }
             );
+
+            await notificationService.createNotification({
+                receiverId: guide.userId.toString(),
+                title: "Guide Verification",
+                message: "Unfortunately, your guide account has been rejected."
+            });
+
+            sendNotification(
+                guide.userId.toString(),
+                {
+                    title: "Guide Verification",
+                    message: "Unfortunately, your guide account has been rejected."
+                }
+            );
         }
+
         const updatedGuide = await this.guideRepo.findDocumentById(
             id,
             {},
@@ -261,13 +369,21 @@ class adminService {
                 }
             }
         );
-        return res.json(successResponse(`Guide ${verificationStatus.toLowerCase()} successfully`, 200, updatedGuide));
+
+        return res.json(
+            successResponse(
+                `Guide ${verificationStatus.toLowerCase()} successfully`,
+                200,
+                updatedGuide
+            )
+        );
     };
     assignTripResources = async (req: IRequest, res: Response) => {
 
         const { id } = req.params as { id: string };
 
-        if (!mongoose.isValidObjectId(id)) throw new badRequestException("Invalid trip id");
+        if (!mongoose.isValidObjectId(id))
+            throw new badRequestException("Invalid trip id");
 
         const { guideId, driverId, vehicleId } = req.body;
 
@@ -275,14 +391,23 @@ class adminService {
         if (!trip) throw new badRequestException("Trip not found");
 
         const updatedData: Partial<ITrip> = {};
+
+        let guide;
+        let driver;
+
         if (guideId) {
 
             if (!mongoose.isValidObjectId(guideId))
                 throw new badRequestException("Invalid guide id");
 
-            const guide = await this.guideRepo.findDocumentById(guideId);
-            if (!guide) throw new badRequestException("Guide not found");
-            if (!guide.availability) throw new badRequestException("Guide is not available");
+            guide = await this.guideRepo.findDocumentById(guideId);
+
+            if (!guide)
+                throw new badRequestException("Guide not found");
+
+            if (!guide.availability)
+                throw new badRequestException("Guide is not available");
+
             updatedData.guideId = guideId;
         }
 
@@ -291,9 +416,13 @@ class adminService {
             if (!mongoose.isValidObjectId(driverId))
                 throw new badRequestException("Invalid driver id");
 
-            const driver = await this.driverRepo.findDocumentById(driverId);
-            if (!driver) throw new badRequestException("Driver not found");
-            if (!driver.availability) throw new badRequestException("Driver is not available");
+            driver = await this.driverRepo.findDocumentById(driverId);
+
+            if (!driver)
+                throw new badRequestException("Driver not found");
+
+            if (!driver.availability)
+                throw new badRequestException("Driver is not available");
 
             updatedData.driverId = driverId;
         }
@@ -304,10 +433,16 @@ class adminService {
                 throw new badRequestException("Invalid vehicle id");
 
             const vehicle = await this.vehicleRepo.findDocumentById(vehicleId);
-            if (!vehicle) throw new badRequestException("Vehicle not found");
-            if (vehicle.capacity < trip.peopleCount) throw new badRequestException("Vehicle capacity is not enough");
+
+            if (!vehicle)
+                throw new badRequestException("Vehicle not found");
+
+            if (vehicle.capacity < trip.peopleCount)
+                throw new badRequestException("Vehicle capacity is not enough");
+
             updatedData.vehicleId = vehicleId;
         }
+
         if (!Object.keys(updatedData).length)
             throw new badRequestException("No data provided");
 
@@ -320,23 +455,62 @@ class adminService {
                 new: true
             }
         );
-        if (guideId) {
+
+        if (guideId && guide) {
+
             await this.guideRepo.findDocumentByIdAndUpdate(
                 guideId,
                 {
                     availability: false
                 }
             );
+
+            await notificationService.createNotification({
+                receiverId: guide.userId.toString(),
+                title: "Trip Assigned",
+                message: "You have been assigned to a new trip."
+            });
+
+            sendNotification(
+                guide.userId.toString(),
+                {
+                    title: "Trip Assigned",
+                    message: "You have been assigned to a new trip."
+                }
+            );
         }
-        if (driverId) {
+
+        if (driverId && driver) {
+
             await this.driverRepo.findDocumentByIdAndUpdate(
                 driverId,
                 {
                     availability: false
                 }
             );
+
+            await notificationService.createNotification({
+                receiverId: driver.userId.toString(),
+                title: "Trip Assigned",
+                message: "You have been assigned to a new trip."
+            });
+
+            sendNotification(
+                driver.userId.toString(),
+                {
+                    title: "Trip Assigned",
+                    message: "You have been assigned to a new trip."
+                }
+            );
         }
-        return res.json(successResponse("Trip resources assigned successfully", 200, updatedTrip));
+
+        return res.json(
+            successResponse(
+                "Trip resources assigned successfully",
+                200,
+                updatedTrip
+            )
+        );
     };
     updateTripStatus = async (req: IRequest, res: Response) => {
 
@@ -352,7 +526,8 @@ class adminService {
 
         const trip = await this.tripRepo.findDocumentById(id);
 
-        if (!trip) throw new badRequestException("Trip not found");
+        if (!trip)
+            throw new badRequestException("Trip not found");
 
         switch (status) {
 
@@ -360,9 +535,11 @@ class adminService {
 
                 if (trip.status !== tripStatusEnum.PENDING)
                     throw new badRequestException("Only pending trips can be confirmed");
+
                 break;
 
             case tripStatusEnum.ONGOING:
+
                 if (trip.status !== tripStatusEnum.CONFIRMED)
                     throw new badRequestException("Only confirmed trips can be started");
 
@@ -390,7 +567,9 @@ class adminService {
                     trip.status === tripStatusEnum.COMPLETED ||
                     trip.status === tripStatusEnum.CANCELLED
                 )
-                    throw new badRequestException(`Cannot cancel trip with status ${trip.status}`);
+                    throw new badRequestException(
+                        `Cannot cancel trip with status ${trip.status}`
+                    );
 
                 break;
 
@@ -418,6 +597,7 @@ class adminService {
                     }
                 );
             }
+
             if (trip.driverId) {
                 await this.driverRepo.findDocumentByIdAndUpdate(
                     trip.driverId,
@@ -427,6 +607,7 @@ class adminService {
                 );
             }
         }
+
         if (status === tripStatusEnum.CANCELLED) {
 
             if (trip.guideId) {
@@ -437,6 +618,7 @@ class adminService {
                     }
                 );
             }
+
             if (trip.driverId) {
                 await this.driverRepo.findDocumentByIdAndUpdate(
                     trip.driverId,
@@ -446,8 +628,105 @@ class adminService {
                 );
             }
         }
-        return res.json(successResponse(`Trip ${status.toLowerCase()} successfully`, 200, updatedTrip));
+
+        // ⬇️ Notification + Socket هيكون هنا
+        // ==========================
+        // Notifications
+        // ==========================
+
+        let touristMessage = "";
+
+        switch (status) {
+
+            case tripStatusEnum.CONFIRMED:
+                touristMessage = "Your trip has been confirmed.";
+                break;
+
+            case tripStatusEnum.ONGOING:
+                touristMessage = "Your trip has started.";
+                break;
+
+            case tripStatusEnum.COMPLETED:
+                touristMessage = "Your trip has been completed.";
+                break;
+
+            case tripStatusEnum.CANCELLED:
+                touristMessage = "Your trip has been cancelled.";
+                break;
+        }
+
+        // Tourist
+        await notificationService.createNotification({
+            receiverId: trip.touristId.toString(),
+            title: "Trip Status Updated",
+            message: touristMessage
+        });
+
+        sendNotification(
+            trip.touristId.toString(),
+            {
+                title: "Trip Status Updated",
+                message: touristMessage
+            }
+        );
+
+        // Guide
+        if (trip.guideId) {
+
+            const guide = await this.guideRepo.findDocumentById(trip.guideId);
+
+            if (guide) {
+
+                await notificationService.createNotification({
+                    receiverId: guide.userId.toString(),
+                    title: "Trip Status Updated",
+                    message: `Trip status changed to ${status}.`
+                });
+
+                sendNotification(
+                    guide.userId.toString(),
+                    {
+                        title: "Trip Status Updated",
+                        message: `Trip status changed to ${status}.`
+                    }
+                );
+            }
+        }
+
+        // Driver
+        if (trip.driverId) {
+
+            const driver = await this.driverRepo.findDocumentById(trip.driverId);
+
+            if (driver) {
+
+                await notificationService.createNotification({
+                    receiverId: driver.userId.toString(),
+                    title: "Trip Status Updated",
+                    message: `Trip status changed to ${status}.`
+                });
+
+                sendNotification(
+                    driver.userId.toString(),
+                    {
+                        title: "Trip Status Updated",
+                        message: `Trip status changed to ${status}.`
+                    }
+                );
+            }
+        }
+
+        return res.json(
+            successResponse(
+                `Trip ${status.toLowerCase()} successfully`,
+                200,
+                updatedTrip
+            )
+        );
     };
+
+
+
     confirmTripPayment = async (req: IRequest, res: Response) => {
 
         const { id } = req.params as { id: string };
@@ -460,7 +739,9 @@ class adminService {
             throw new badRequestException("isPaid must be true or false");
 
         const trip = await this.tripRepo.findDocumentById(id);
-        if (!trip) throw new badRequestException("Trip not found");
+
+        if (!trip)
+            throw new badRequestException("Trip not found");
 
         const updatedTrip = await this.tripRepo.findDocumentByIdAndUpdate(
             id,
@@ -471,8 +752,36 @@ class adminService {
                 new: true
             }
         );
-        return res.json(successResponse(`Trip payment ${isPaid ? "confirmed" : "cancelled"} successfully`, 200, updatedTrip));
+
+        await notificationService.createNotification({
+            receiverId: trip.touristId.toString(),
+            title: "Trip Payment",
+            message: isPaid
+                ? "Your trip payment has been confirmed."
+                : "Your trip payment has been cancelled."
+        });
+
+        sendNotification(
+            trip.touristId.toString(),
+            {
+                title: "Trip Payment",
+                message: isPaid
+                    ? "Your trip payment has been confirmed."
+                    : "Your trip payment has been cancelled."
+            }
+        );
+
+        return res.json(
+            successResponse(
+                `Trip payment ${isPaid ? "confirmed" : "cancelled"} successfully`,
+                200,
+                updatedTrip
+            )
+        );
     };
+
+
+
 }
 
 export default new adminService();

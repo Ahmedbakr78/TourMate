@@ -20,7 +20,7 @@ adminRouter.patch("/:id/role", authentication, authorization([roleEnum.ADMIN]), 
 adminRouter.patch("/:id/status", authentication, authorization([roleEnum.ADMIN]), adminService.changeUserStatus);
 
 // Delete User
-adminRouter.delete("/:id", authentication, authorization([roleEnum.ADMIN]), adminService.deleteUser);
+adminRouter.delete("/:id/delete", authentication, authorization([roleEnum.ADMIN]), adminService.deleteUser);
 
 // Update Driver Verification Status
 adminRouter.patch("/driver/:id/verification-status", authentication, authorization([roleEnum.ADMIN]), adminService.updateDriverVerificationStatus);
@@ -36,4 +36,5 @@ adminRouter.patch("/trip/:id/status", authentication, authorization([roleEnum.AD
 
 // Confirm Trip Payment
 adminRouter.patch("/trip/:id/confirm-payment", authentication, authorization([roleEnum.ADMIN]), adminService.confirmTripPayment);
+
 export { adminRouter };

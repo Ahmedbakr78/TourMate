@@ -1,22 +1,26 @@
 import { Request, Response } from "express";
 import { IRequest, IReview, roleEnum, tripStatusEnum } from "../../../common/index.js";
-import { reviewModel, reviewRepository, tripModel, tripRepository, placeModel, placeRepository } from "../../../db/index.js";
+import { reviewModel, reviewRepository, tripModel, tripRepository, placeModel, placeRepository, guideRepository, driverRepository, guideModel, driverModel } from "../../../db/index.js";
 import { badRequestException, pagination, successResponse } from "../../../utils/index.js";
 import mongoose from "mongoose";
+import { sendNotification } from "../../../socket/sendNotification.js";
+import notificationService from "../../../utils/services/createnotification.service.js";
 
 class reviewService {
 
     private reviewRepo = new reviewRepository(reviewModel);
     private tripRepo = new tripRepository(tripModel);
     private placeRepo = new placeRepository(placeModel);
+    private guideRepo = new guideRepository(guideModel);
+    private driverRepo = new driverRepository(driverModel);
 
     createReview = async (req: IRequest, res: Response) => {
 
         if (!req.loggedInUser) throw new badRequestException("User not authenticated");
 
         const touristId = req.loggedInUser.user._id;
-
         const { tripId, placeId, guideId, driverId, rating, comment } = req.body;
+
         if (!tripId) throw new badRequestException("Trip id is required");
 
         if (rating === undefined || rating < 1 || rating > 5)
@@ -34,25 +38,27 @@ class reviewService {
         if (placeId) {
 
             const place = await this.placeRepo.findDocumentById(placeId);
-            if (!place) throw new badRequestException("Place not found");
+
+            if (!place)
+                throw new badRequestException("Place not found");
+
             const placeExists = trip.places.some(
                 place => place.toString() === placeId
             );
-            if (!placeExists) throw new badRequestException("This place does not belong to this trip");
-        }
 
+            if (!placeExists)
+                throw new badRequestException("This place does not belong to this trip");
+        }
         if (guideId) {
 
-            if (!trip.guideId || trip.guideId.toString() !== guideId) {
+            if (!trip.guideId || trip.guideId.toString() !== guideId)
                 throw new badRequestException("Guide does not belong to this trip");
-            }
-        }
 
+        }
         if (driverId) {
 
-            if (!trip.driverId || trip.driverId.toString() !== driverId) {
+            if (!trip.driverId || trip.driverId.toString() !== driverId)
                 throw new badRequestException("Driver does not belong to this trip");
-            }
         }
 
         const existingReview = await this.reviewRepo.findOneDocument({
@@ -62,7 +68,10 @@ class reviewService {
             guideId,
             driverId
         });
-        if (existingReview) throw new badRequestException("You already reviewed this item");
+
+        if (existingReview)
+            throw new badRequestException("You already reviewed this item");
+
         const review = await this.reviewRepo.createNewDocument({
 
             touristId,
@@ -72,15 +81,54 @@ class reviewService {
             driverId,
             rating,
             comment
+
         } as Partial<IReview>);
 
-        if (placeId) {
-            const reviews = await this.reviewRepo.findDocuments({
-                placeId
-            });
+        if (guideId) {
 
-            const averageRating = reviews.reduce((sum, review) =>
-                sum + review.rating, 0) / reviews.length;
+            const guide = await this.guideRepo.findDocumentById(guideId);
+            if (guide) {
+                await notificationService.createNotification({
+                    senderId: touristId.toString(),
+                    receiverId: guide.userId.toString(),
+                    title: "New Review",
+                    message: "A tourist left a review on your profile."
+                });
+                sendNotification(
+                    guide.userId.toString(),
+                    {
+                        title: "New Review",
+                        message: "A tourist left a review on your profile."
+                    }
+                );
+            }
+        }
+
+        if (driverId) {
+            const driver = await this.driverRepo.findDocumentById(driverId);
+            if (driver) {
+                await notificationService.createNotification({
+                    senderId: touristId.toString(),
+                    receiverId: driver.userId.toString(),
+                    title: "New Review",
+                    message: "A tourist left a review on your profile."
+                });
+                sendNotification(
+                    driver.userId.toString(),
+                    {
+                        title: "New Review",
+                        message: "A tourist left a review on your profile."
+
+                    }
+                );
+            }
+        }
+        if (placeId) {
+
+            const reviews = await this.reviewRepo.findDocuments({ placeId });
+            const averageRating =
+                reviews.reduce((sum, review) => sum + review.rating, 0) /
+                reviews.length;
 
             await this.placeRepo.findDocumentByIdAndUpdate(
                 placeId,
