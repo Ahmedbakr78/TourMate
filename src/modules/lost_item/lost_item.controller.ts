@@ -1,14 +1,13 @@
 import { Router } from "express";
 import lostItemService from "./service/lost_item.service.js";
 import { authentication } from "../../middlewares/authentication.middleware.js";
-import { authorization } from "../../middlewares/authorization.middleware.js";
 import { hostUpload } from "../../middlewares/upload.middlewares.js";
-import { fileTypes, roleEnum } from "../../common/index.js";
+import { fileTypes } from "../../common/index.js";
 
 const lostItemRouter = Router();
 
 // Create lost item
-lostItemRouter.post("/create_lost_item", authentication, lostItemService.createLostItem);
+lostItemRouter.post("/create_lost_item", authentication, hostUpload([fileTypes.IMAGE]).single("image"), lostItemService.createLostItem);
 
 // Update lost item 
 lostItemRouter.patch("/:id/update", authentication, lostItemService.updateLostItem);

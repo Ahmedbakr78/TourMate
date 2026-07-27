@@ -165,7 +165,7 @@ class vehicleService {
 
     searchVehicles = async (req: IRequest, res: Response) => {
 
-        const { brand, plateNumber, page, limit } = req.body;
+        const { brand, plateNumber, page, limit } = req.query;
 
         const filter: any = {};
 

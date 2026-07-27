@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import {createServer} from "http";
+
 import express, { NextFunction, Request, Response } from "express";
 import * as controllers from "./modules/controller.index.js";
 import helmet from "helmet";
@@ -6,6 +8,7 @@ import compression from "compression";
 import cors from "cors";
 import { dbConnection } from './db/db.connection.js';
 import { failedResponse, httpException } from './utils/index.js';
+import { initSocket } from './socket/socket.js';
 
 const app = express();
 await dbConnection();
@@ -51,6 +54,8 @@ app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
 
 });
 
+const server = createServer(app);
+initSocket(server);
 
 app.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`);

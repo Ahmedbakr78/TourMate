@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import fs from "fs/promises";
 import { IRequest, IUser } from "../../../common/index.js";
 import { blackListedTokensModel, blackListedTokensRepository, userModel, userRepository } from "../../../db/index.js";
-import { badRequestException, conflictException, deleteFileFromCloudinary, encrypt, pagination, successResponse, uploadFileToCloudinary, } from "../../../utils/index.js";
+import { badRequestException, conflictException, decrypt, deleteFileFromCloudinary, encrypt, pagination, successResponse, uploadFileToCloudinary, } from "../../../utils/index.js";
 
 
 class userService {
@@ -13,13 +13,23 @@ class userService {
         const { id } = req.params as { id: string };
         const user = await this.userRepo.findDocumentById(id);
         if (!user) throw new badRequestException("User not found");
-        return res.json(successResponse("User fetched successfully", 200, user));
+        const userResponse = user.toObject();
+
+        if (userResponse.phone) {
+            userResponse.phone = decrypt(userResponse.phone);
+        }
+        return res.json(successResponse("User fetched successfully", 200, userResponse));
     }
     getCurrentUserId = async (req: IRequest, res: Response) => {
         const { id } = req.loggedInUser!.user;
         const user = await this.userRepo.findDocumentById(id);
         if (!user) throw new badRequestException("User not found");
-        return res.json(successResponse("User fetched successfully", 200, user));
+        const userResponse = user.toObject();
+
+        if (userResponse.phone) {
+            userResponse.phone = decrypt(userResponse.phone);
+        }
+        return res.json(successResponse("User fetched successfully", 200, userResponse));
     }
     getUsers = async (req: IRequest, res: Response) => {
         const { page, limit } = req.query;
@@ -27,7 +37,15 @@ class userService {
             {},
             pagination({ page: Number(page), limit: Number(limit) })
         );
+        paginateResult.docs = paginateResult.docs.map((user: any) => {
+            const userResponse = user.toObject ? user.toObject() : user;
 
+            if (userResponse.phone) {
+                userResponse.phone = decrypt(userResponse.phone);
+            }
+
+            return userResponse;
+        });
         return res.json(successResponse("Users fetched successfully", 200, paginateResult));
     };
     updateUser = async (req: IRequest, res: Response) => {
@@ -56,7 +74,12 @@ class userService {
             { new: true }
         );
         if (!updatedUser) throw new badRequestException("User not found or update failed");
-        return res.json(successResponse("User updated successfully", 200, updatedUser));
+        const userResponse = updatedUser.toObject();
+
+        if (userResponse.phone) {
+            userResponse.phone = decrypt(userResponse.phone);
+        }
+        return res.json(successResponse("User updated successfully", 200, userResponse));
     }
     uploadProfileImage = async (req: IRequest, res: Response) => {
 
@@ -93,7 +116,12 @@ class userService {
                 new: true
             }
         );
-        return res.json(successResponse("Profile image uploaded successfully", 200, updatedUser));
+        const response = updatedUser!.toObject();
+
+        if (response.phone) {
+            response.phone = decrypt(response.phone);
+        }
+        return res.json(successResponse("Profile image uploaded successfully", 200, response));
     };
     deleteProfileImage = async (req: IRequest, res: Response) => {
 

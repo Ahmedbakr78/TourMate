@@ -24,10 +24,10 @@ authRouter.post("/refresh_token", authService.refreshToken);
 authRouter.post("/logout", authentication, authService.logOut);
 
 // Forgot Password
-authRouter.post("/forgot_password", authentication,authService.forgotPassword);
+authRouter.post("/forgot_password", authService.forgotPassword);
 
 // Reset Password
-authRouter.patch("/reset_password", authentication, authService.resetPassword);
+authRouter.patch("/reset_password", authService.resetPassword);
 
 // Change Password
 authRouter.patch("/change_password", authentication, authService.changePassword);

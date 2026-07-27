@@ -8,10 +8,10 @@ import { fileTypes, roleEnum } from "../../common/index.js";
 const vehicleRouter = Router();
 
 // Create vehicle
-vehicleRouter.post("/create_vehicle", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), hostUpload([fileTypes.IMAGE]).single("image"), vehicleService.createVehicle);
+vehicleRouter.post("/create_vehicle", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), hostUpload([fileTypes.IMAGE]).array("image",5), vehicleService.createVehicle);
 
 // update vehicle
-vehicleRouter.patch("/update/:id", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), hostUpload([fileTypes.IMAGE]).single("image"), vehicleService.updateVehicle);
+vehicleRouter.patch("/update/:id", authentication, authorization([roleEnum.DRIVER, roleEnum.ADMIN]), hostUpload([fileTypes.IMAGE]).array("image",5), vehicleService.updateVehicle);
 
 // get vehicle by id
 vehicleRouter.get("/get/:id", vehicleService.getVehicleById);

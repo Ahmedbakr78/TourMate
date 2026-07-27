@@ -118,7 +118,7 @@ class placeService {
 
     searchPlaces = async (req: Request, res: Response) => {
 
-        const { name, city, category, price, page, limit } = req.body;
+        const { name, city, category, price, page, limit } = req.query;
 
         const filter: any = {};
 

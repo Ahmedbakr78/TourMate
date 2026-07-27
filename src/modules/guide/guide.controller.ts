@@ -11,7 +11,7 @@ const guideRouter = Router();
 guideRouter.post("/create_guide", authentication, authorization([roleEnum.TOURIST]), hostUpload([fileTypes.IMAGE, fileTypes.APPLICATION]).single("certificate"), guideService.createGuide);
 
 // Update guide
-guideRouter.patch("/update/:id", authentication, authorization([roleEnum.ADMIN, roleEnum.GUIDE]), guideService.updateGuide);
+guideRouter.patch("/update/:id", authentication, authorization([roleEnum.ADMIN, roleEnum.GUIDE]), hostUpload([fileTypes.IMAGE, fileTypes.APPLICATION]).single("certificate"), guideService.updateGuide);
 
 // delete guide
 guideRouter.delete("/delete/:id", authentication, authorization([roleEnum.ADMIN, roleEnum.GUIDE]), guideService.deleteGuide);

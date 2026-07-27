@@ -186,7 +186,7 @@ class guideService {
     };
     searchGuides = async (req: IRequest, res: Response) => {
 
-        const { language, availability, verificationStatus, page, limit } = req.body;
+        const { language, availability, verificationStatus, page, limit } = req.query;
 
         const filter: any = {};
 
