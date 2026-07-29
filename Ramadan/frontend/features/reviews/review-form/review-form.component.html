@@ -1,0 +1,59 @@
+<app-loading *ngIf="loading"></app-loading>
+
+<div class="form-page" *ngIf="!loading">
+  <mat-card>
+    <h1>{{ isEdit ? 'Edit review' : 'New review' }}</h1>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Trip</mat-label>
+        <mat-select formControlName="tripId" required>
+          <mat-option *ngFor="let trip of trips" [value]="trip._id">
+            {{ trip.startDate | date:'mediumDate' }} &mdash; {{ trip.endDate | date:'mediumDate' }} ({{ trip.peopleCount }} people)
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Review target</mat-label>
+        <mat-select formControlName="targetType" required>
+          <mat-option value="place">Place</mat-option>
+          <mat-option value="guide">Guide</mat-option>
+          <mat-option value="driver">Driver</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width" *ngIf="form.value.targetType !== 'trip'">
+        <mat-label>Target ID</mat-label>
+        <input matInput formControlName="targetId" placeholder="Enter ID of the {{ form.value.targetType }}">
+      </mat-form-field>
+
+      <label class="field-label">Rating</label>
+      <div class="star-rating">
+        <span
+          *ngFor="let star of [1,2,3,4,5]; let i = index"
+          class="star"
+          [class.filled]="i < (form.get('rating')?.value || 0)"
+          [class.hover]="i < hoverRating"
+          (mouseenter)="hoverRating = star"
+          (mouseleave)="hoverRating = 0"
+          (click)="setRating(star)">
+          {{ i < (form.get('rating')?.value || 0) ? '★' : '☆' }}
+        </span>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Comment</mat-label>
+        <textarea matInput formControlName="comment" rows="4" placeholder="Share your experience..."></textarea>
+      </mat-form-field>
+
+      <div class="actions">
+        <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">
+          {{ saving ? 'Saving...' : (isEdit ? 'Update review' : 'Submit review') }}
+        </button>
+        <button mat-stroked-button type="button" routerLink="/reviews">Cancel</button>
+      </div>
+
+    </form>
+  </mat-card>
+</div>
