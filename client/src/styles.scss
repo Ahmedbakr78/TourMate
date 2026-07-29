@@ -1,0 +1,74 @@
+:root {
+  --tm-primary: #0d9488;
+  --tm-primary-dark: #0f766e;
+  --tm-accent: #f59e0b;
+  --tm-bg: #f8fafc;
+  --tm-surface: #ffffff;
+  --tm-text: #0f172a;
+  --tm-muted: #64748b;
+  --tm-danger: #ef4444;
+  --tm-success: #22c55e;
+  --tm-radius: 12px;
+  --tm-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+  background: var(--tm-bg);
+  color: var(--tm-text);
+}
+
+a {
+  color: var(--tm-primary);
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  font: inherit;
+}
+
+.tm-card {
+  background: var(--tm-surface);
+  border-radius: var(--tm-radius);
+  box-shadow: var(--tm-shadow);
+  padding: 1.25rem;
+}
+
+.tm-btn {
+  background: var(--tm-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+}
+
+.tm-btn:hover {
+  background: var(--tm-primary-dark);
+}
+
+.tm-btn-danger {
+  background: var(--tm-danger);
+}
+
+.tm-input {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  margin-bottom: 0.9rem;
+}
+
+.tm-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
