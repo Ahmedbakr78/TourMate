@@ -1,0 +1,71 @@
+.detail-page {
+  padding: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+
+  h1 { margin-bottom: 0.5rem; font-size: 1.3rem; }
+  .actions { display: flex; gap: 0.5rem; }
+}
+
+.tab-content {
+  padding: 1.5rem 0.5rem;
+}
+
+.vote-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+.form-card {
+  margin-bottom: 1.5rem;
+}
+
+.full-width { width: 100%; margin-bottom: 0.5rem; }
+
+.review-card { margin-bottom: 0.75rem; }
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #f9a825;
+  font-weight: 600;
+
+  mat-icon { font-size: 1.1rem; height: 1.1rem; width: 1.1rem; }
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: #b26a00;
+  background: #fff3e0;
+  padding: 0.6rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.file-label {
+  display: block;
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.lost-item-img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.empty { color: #888; }

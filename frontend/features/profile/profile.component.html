@@ -1,0 +1,140 @@
+<app-loading *ngIf="loading"></app-loading>
+
+<div class="profile-page" *ngIf="!loading && user">
+  <mat-card class="avatar-card">
+    <img *ngIf="user.profileImage?.secure_url" [src]="user.profileImage?.secure_url" class="avatar">
+    <mat-icon *ngIf="!user.profileImage?.secure_url" class="avatar-placeholder">account_circle</mat-icon>
+
+    <div class="avatar-actions">
+      <button mat-stroked-button (click)="fileInput.click()" [disabled]="uploadingImage">
+        {{ uploadingImage ? 'Uploading...' : 'Upload photo' }}
+      </button>
+      <input #fileInput type="file" accept="image/*" hidden (change)="onImageSelected($event)">
+      <button mat-stroked-button color="warn" (click)="deleteImage()" *ngIf="user.profileImage?.secure_url">Remove</button>
+    </div>
+    <p class="role-badge">{{ user.role }} &middot; {{ user.status }}</p>
+  </mat-card>
+
+  <mat-card>
+    <h2>Profile details</h2>
+    <form [formGroup]="profileForm" (ngSubmit)="saveProfile()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name" required>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Phone</mat-label>
+        <input matInput formControlName="phone" required>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Gender</mat-label>
+        <mat-select formControlName="gender">
+          <mat-option [value]="genderEnum.MALE">Male</mat-option>
+          <mat-option [value]="genderEnum.FEMALE">Female</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Email</mat-label>
+        <input matInput [value]="user.email" disabled>
+      </mat-form-field>
+      <button mat-raised-button color="primary" type="submit" [disabled]="profileForm.invalid || saving">
+        {{ saving ? 'Saving...' : 'Save changes' }}
+      </button>
+    </form>
+  </mat-card>
+
+  <mat-card *ngIf="user.role === roleEnum.TOURIST">
+    <h2>Become a driver or guide</h2>
+    <div class="role-actions">
+      <a mat-stroked-button routerLink="/drivers/become-a-driver">Become a driver</a>
+      <a mat-stroked-button routerLink="/guides/become-a-guide">Become a guide</a>
+    </div>
+  </mat-card>
+
+  <mat-card *ngIf="user.role === roleEnum.DRIVER">
+    <h2>My driver profile</h2>
+    <app-loading *ngIf="loadingDriver" [diameter]="24"></app-loading>
+
+    <ng-container *ngIf="!loadingDriver && myDriver">
+      <p><strong>License:</strong> {{ myDriver.licenseNumber }}</p>
+      <p><strong>Rating:</strong> {{ myDriver.rating || 'No ratings yet' }}</p>
+      <mat-chip [color]="myDriver.verificationStatus === 'approved' ? 'primary' : 'warn'" selected>
+        {{ myDriver.verificationStatus }}
+      </mat-chip>
+
+      <div class="availability-row">
+        <mat-slide-toggle
+          [checked]="myDriver.availability"
+          [disabled]="updatingDriverAvailability"
+          (change)="toggleDriverAvailability($event.checked)">
+          Available for trips
+        </mat-slide-toggle>
+      </div>
+
+      <a mat-stroked-button routerLink="/vehicles">Manage my vehicles</a>
+    </ng-container>
+
+    <p *ngIf="!loadingDriver && !myDriver" class="empty">
+      Couldn't find a driver profile linked to your account yet.
+    </p>
+  </mat-card>
+
+  <mat-card *ngIf="user.role === roleEnum.GUIDE">
+    <h2>My guide profile</h2>
+    <app-loading *ngIf="loadingGuide" [diameter]="24"></app-loading>
+
+    <ng-container *ngIf="!loadingGuide && myGuide">
+      <p><strong>Languages:</strong> {{ myGuide.languages.join(', ') }}</p>
+      <p><strong>Experience:</strong> {{ myGuide.experience }} years</p>
+      <p><strong>Rating:</strong> {{ myGuide.rating || 'No ratings yet' }}</p>
+      <mat-chip [color]="myGuide.verificationStatus === 'approved' ? 'primary' : 'warn'" selected>
+        {{ myGuide.verificationStatus }}
+      </mat-chip>
+
+      <div class="availability-row">
+        <mat-slide-toggle
+          [checked]="myGuide.availability"
+          [disabled]="updatingGuideAvailability"
+          (change)="toggleGuideAvailability($event.checked)">
+          Available for trips
+        </mat-slide-toggle>
+      </div>
+
+      <div class="certificate-row">
+        <a *ngIf="myGuide.certificate?.secure_url" [href]="myGuide.certificate?.secure_url" target="_blank" mat-button>
+          View current certificate
+        </a>
+        <input type="file" accept="image/*,.pdf" (change)="onCertificateSelected($event)">
+        <button mat-stroked-button (click)="uploadNewCertificate()" [disabled]="!newCertificate || uploadingCertificate">
+          {{ uploadingCertificate ? 'Uploading...' : 'Update certificate' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <p *ngIf="!loadingGuide && !myGuide" class="empty">
+      Couldn't find a guide profile linked to your account yet.
+    </p>
+  </mat-card>
+
+  <mat-card>
+    <h2>Change password</h2>
+    <form [formGroup]="passwordForm" (ngSubmit)="changePassword()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Current password</mat-label>
+        <input matInput type="password" formControlName="oldPassword" required>
+      </mat-form-field>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>New password</mat-label>
+        <input matInput type="password" formControlName="newPassword" required>
+      </mat-form-field>
+      <button mat-raised-button type="submit" [disabled]="passwordForm.invalid || changingPassword">
+        {{ changingPassword ? 'Changing...' : 'Change password' }}
+      </button>
+    </form>
+  </mat-card>
+
+  <mat-card class="danger-zone">
+    <h2>Danger zone</h2>
+    <button mat-raised-button color="warn" (click)="deleteAccount()">Delete my account</button>
+  </mat-card>
+</div>
