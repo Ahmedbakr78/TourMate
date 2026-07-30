@@ -1,0 +1,125 @@
+@use '@angular/material' as mat;
+
+/*
+  TourMate design tokens
+  -----------------------
+  Palette: "Nile Teal" (primary) + "Desert Gold" (accent) - a deliberate move away from
+  Material's stock indigo-pink, grounded in the product's subject: a trip-planning
+  platform for Egypt. Teal reads as water/navigation/trust; gold reads as warm,
+  sun-baked, welcoming - without leaning on literal pyramid/hieroglyph cliches.
+  Typography: Fraunces (a warm, slightly editorial serif) for headings paired with
+  Inter for body/UI text - reads as "boutique travel platform", not generic SaaS.
+*/
+
+$nile-teal: (
+  50: #e6f2f1,
+  100: #c0dedb,
+  200: #96c8c3,
+  300: #6bb1ab,
+  400: #4a9f97,
+  500: #298d84,
+  600: #21807a,
+  700: #17716c,
+  800: #0f635e,
+  900: #044944,
+  A100: #a6fff2,
+  A200: #73ffe8,
+  A400: #40ffdd,
+  A700: #26ffd8,
+  contrast: (
+    50: rgba(black, 0.87), 100: rgba(black, 0.87), 200: rgba(black, 0.87), 300: rgba(black, 0.87),
+    400: white, 500: white, 600: white, 700: white, 800: white, 900: white,
+    A100: rgba(black, 0.87), A200: rgba(black, 0.87), A400: rgba(black, 0.87), A700: rgba(black, 0.87),
+  )
+);
+
+$desert-gold: (
+  50: #fdf3e2,
+  100: #fae0b3,
+  200: #f6cb80,
+  300: #f2b64d,
+  400: #efa626,
+  500: #ec9700,
+  600: #dc8b00,
+  700: #c77c00,
+  800: #b26e00,
+  900: #8f5500,
+  A100: #ffe4b8,
+  A200: #ffcc85,
+  A400: #ffb452,
+  A700: #ffa838,
+  contrast: (
+    50: rgba(black, 0.87), 100: rgba(black, 0.87), 200: rgba(black, 0.87), 300: rgba(black, 0.87),
+    400: rgba(black, 0.87), 500: rgba(black, 0.87), 600: white, 700: white, 800: white, 900: white,
+    A100: rgba(black, 0.87), A200: rgba(black, 0.87), A400: rgba(black, 0.87), A700: rgba(black, 0.87),
+  )
+);
+
+@include mat.core();
+
+$tourmate-primary: mat.define-palette($nile-teal, 700, 400, 900);
+$tourmate-accent: mat.define-palette($desert-gold, 600, 400, 800);
+$tourmate-warn: mat.define-palette(mat.$red-palette);
+
+$tourmate-typography: mat.define-typography-config(
+  $font-family: 'Inter, "Helvetica Neue", sans-serif',
+);
+
+$tourmate-theme: mat.define-light-theme((
+  color: (
+    primary: $tourmate-primary,
+    accent: $tourmate-accent,
+    warn: $tourmate-warn,
+  ),
+  typography: $tourmate-typography,
+));
+
+@include mat.all-component-themes($tourmate-theme);
+
+:root {
+  --tm-primary-900: #044944;
+  --tm-primary-700: #17716c;
+  --tm-primary-500: #298d84;
+  --tm-primary-100: #c0dedb;
+  --tm-accent-600: #dc8b00;
+  --tm-accent-400: #efa626;
+  --tm-accent-100: #fae0b3;
+  --tm-ink: #1f2933;
+  --tm-paper: #fbfaf7;
+  --tm-card-radius: 12px;
+}
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Helvetica Neue', sans-serif;
+  color: var(--tm-ink);
+  background: var(--tm-paper);
+}
+
+h1, h2, h3, .mat-headline-5, .mat-headline-6, .mat-title {
+  font-family: 'Fraunces', 'Georgia', serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Softer, more hospitality-appropriate card language app-wide */
+.mat-mdc-card {
+  border-radius: var(--tm-card-radius) !important;
+  box-shadow: 0 1px 2px rgba(4, 73, 68, 0.06), 0 4px 16px rgba(4, 73, 68, 0.06) !important;
+}
+
+.mat-mdc-raised-button, .mat-mdc-unelevated-button {
+  border-radius: 8px !important;
+  letter-spacing: 0.01em;
+}
+
+.mat-mdc-form-field {
+  font-family: 'Inter', sans-serif;
+}
+
+::selection {
+  background: var(--tm-accent-100);
+  color: var(--tm-primary-900);
+}

@@ -1,0 +1,519 @@
+@startuml
+skinparam sequence {
+  BackgroundColor #FAFAFA
+  ActorBorderColor #2E7D32
+  LifeLineBorderColor #1565C0
+  LifeLineBackgroundColor #E3F2FD
+  ParticipantBorderColor #1565C0
+  ParticipantBackgroundColor #E3F2FD
+  NoteBackgroundColor #FFF8E1
+  NoteBorderColor #F57F17
+}
+
+' ===================================================================
+' FLOW 1: User Registration
+' ===================================================================
+title Flow 1: User Registration & Email Verification
+
+actor "Tourist" as tourist
+participant "Browser/App" as client
+participant "Auth Controller" as authCtrl
+participant "Auth Service" as authSvc
+participant "Hash Utils" as hash
+participant "Token Utils" as token
+participant "Email Service" as email
+database "MongoDB" as db
+
+== Registration ==
+tourist -> client: Fill signup form\n(name, email, password, phone, gender)
+client -> authCtrl: POST /auth/signup
+authCtrl -> authSvc: signUp(dto)
+authSvc -> authSvc: Encrypt phone (AES-256-CBC)
+authSvc -> hash: Hash password (bcrypt)
+hash --> authSvc: hashedPassword
+authSvc -> db: Check email uniqueness
+db --> authSvc: OK (no duplicate)
+authSvc -> authSvc: Generate OTP (6 digits)
+authSvc -> db: Create user (isVerified: false)
+db --> authSvc: New user document
+authSvc -> email: Send OTP email
+email --> authSvc: Email sent
+authSvc --> authCtrl: 201 { message: "OTP sent to email" }
+authCtrl --> client: Success response
+client --> tourist: "Check your email for OTP"
+
+== Email Verification ==
+tourist -> client: Enter OTP code
+client -> authCtrl: POST /auth/confirm_email { email, otp }
+authCtrl -> authSvc: confirmEmail(email, otp)
+authSvc -> db: Find user by email
+db --> authSvc: User with OTPs array
+authSvc -> authSvc: Compare OTP hash
+alt OTP valid & not expired
+  authSvc -> db: Update user (isVerified: true)
+  db --> authSvc: Updated user
+  authSvc -> token: Generate tokens
+  token --> authSvc: { accessToken, refreshToken }
+  authSvc --> authCtrl: 200 { tokens, user }
+  authCtrl --> client: "Email verified! Welcome!"
+  client --> tourist: Redirect to dashboard
+else OTP invalid or expired
+  authSvc --> authCtrl: 400 { message: "Invalid or expired OTP" }
+  authCtrl --> client: Error response
+  client --> tourist: "Wrong OTP, try again"
+end
+
+@enduml
+@startuml
+
+' ===================================================================
+' FLOW 2: User Login
+' ===================================================================
+title Flow 2: User Login & Authentication
+
+actor "User" as user
+participant "Browser/App" as client
+participant "Auth Controller" as authCtrl
+participant "Auth Service" as authSvc
+participant "Hash Utils" as hash
+participant "Token Utils" as token
+database "MongoDB" as db
+
+== Login ==
+user -> client: Enter email & password
+client -> authCtrl: POST /auth/signin { email, password }
+authCtrl -> authSvc: signIn(email, password)
+authSvc -> db: Find user by email (select +password)
+db --> authSvc: User document (null if not found)
+
+alt User not found
+  authSvc --> authCtrl: 400 { message: "Invalid email or password" }
+  authCtrl --> client: Error
+  client --> user: "Invalid credentials"
+
+else User found
+  authSvc -> hash: Compare password
+  hash --> authSvc: boolean match
+
+  alt Password doesn't match
+    authSvc --> authCtrl: 400 { message: "Invalid email or password" }
+    authCtrl --> client: Error
+    client --> user: "Wrong password"
+
+  else Password matches
+    alt User not verified
+      authSvc --> authCtrl: 400 { message: "Please confirm email first" }
+      authCtrl --> client: Error
+      client --> user: "Verify your email"
+
+    else User is verified
+      alt User status = blocked
+        authSvc --> authCtrl: 401 { message: "Account blocked" }
+        authCtrl --> client: Error
+        client --> user: "Account blocked"
+
+      else User active
+        authSvc -> token: Generate accessToken (15min)
+        authSvc -> token: Generate refreshToken (7days)
+        token --> authSvc: tokens
+        authSvc --> authCtrl: 200 { tokens, user }
+        authCtrl --> client: Success response
+        client --> user: Redirect to dashboard
+      end
+    end
+  end
+end
+
+== Token Refresh ==
+user -> client: Access token expired
+client -> authCtrl: POST /auth/refresh_token { refreshToken }
+authCtrl -> authSvc: refreshToken(token)
+authSvc -> authSvc: Verify refreshToken signature
+authSvc -> db: Check if token blacklisted
+db --> authSvc: Not blacklisted
+authSvc -> token: Generate new accessToken
+token --> authSvc: newAccessToken
+authSvc --> authCtrl: 200 { accessToken }
+authCtrl --> client: New token
+client --> user: Continue session
+
+@enduml
+@startuml
+
+' ===================================================================
+' FLOW 3: Trip Creation (Full)
+' ===================================================================
+title Flow 3: Trip Creation (Full Flow)
+
+actor "Tourist" as tourist
+participant "Browser/App" as client
+participant "Trip Controller" as tripCtrl
+participant "Trip Service" as tripSvc
+participant "Guide Service" as guideSvc
+participant "Driver Service" as driverSvc
+participant "Vehicle Service" as vehSvc
+participant "Price Service" as priceSvc
+participant "Notification Service" as notifSvc
+database "MongoDB" as db
+
+== Trip Creation ==
+tourist -> client: Select places, dates, people count\n(optionally select guide/driver/vehicle)
+client -> tripCtrl: POST /trip/create_trip\n{places, startDate, endDate, peopleCount,\n guideId?, driverId?, vehicleId?}
+tripCtrl -> tripSvc: createTrip(dto)
+
+tripSvc -> db: Validate each place exists
+db --> tripSvc: Places found ✓
+
+group Optional: Guide assignment
+  tripSvc -> guideSvc: Validate guide\n(availability, verificationStatus)
+  guideSvc --> tripSvc: Guide available ✓
+end
+
+group Optional: Driver assignment
+  tripSvc -> driverSvc: Validate driver\n(availability, verificationStatus)
+  driverSvc --> tripSvc: Driver available ✓
+end
+
+group Optional: Vehicle assignment
+  tripSvc -> vehSvc: Validate vehicle capacity
+  vehSvc --> tripSvc: Vehicle fits ✓
+end
+
+tripSvc -> priceSvc: calculatePrice(places, days, people,\n guide, driver, vehicle)
+priceSvc --> tripSvc: { basePrice, guideFee, driverFee,\n totalPrice }
+
+tripSvc -> db: Create trip { status: "pending", ... }
+db --> tripSvc: New trip document
+
+alt Guide assigned
+  tripSvc -> notifSvc: Send notification + socket event
+end
+alt Driver assigned
+  tripSvc -> notifSvc: Send notification + socket event
+end
+
+tripSvc --> tripCtrl: 201 { trip }
+tripCtrl --> client: Trip created successfully
+client --> tourist: Show trip details page
+
+== Share Trip ==
+tourist -> client: Click "Share Trip"
+client -> tripCtrl: PATCH /trip/:id/share
+tripCtrl -> tripSvc: shareTrip(tripId)
+tripSvc -> db: Update trip (sharedTripId = tripId)
+db --> tripSvc: Updated trip
+tripSvc --> tripCtrl: 200 { trip, shareLink }
+tripCtrl --> client: Share link generated
+client --> tourist: "Copy share link"
+
+== Join Shared Trip ==
+actor "Other Tourist" as other
+other -> client: Open share link
+client -> tripCtrl: PATCH /trip/:id/join
+tripCtrl -> tripSvc: joinSharedTrip(tripId, userId)
+tripSvc -> db: Check capacity (peopleCount)
+db --> tripSvc: Under capacity
+tripSvc -> db: Add user to participants
+tripSvc -> priceSvc: Recalculate split cost
+priceSvc --> tripSvc: { splitCost }
+tripSvc --> tripCtrl: 200 { trip, splitCost }
+tripCtrl --> client: Trip joined
+client --> other: "You've joined! Your share: $X"
+
+== Start & Complete Trip ==
+tourist -> client: Click "Start Trip"
+client -> tripCtrl: PATCH /trip/:id/start
+tripCtrl -> tripSvc: startTrip(tripId)
+tripSvc -> db: Validate guide,driver,vehicle assigned
+db --> tripSvc: All assigned ✓
+tripSvc -> db: Update status "ongoing"
+db --> tripSvc: Updated
+tripSvc --> tripCtrl: 200 { trip, "Trip started!" }
+
+note over tripSvc: Driver polls location every N seconds
+
+tourist -> client: Click "Complete Trip"
+client -> tripCtrl: PATCH /trip/:id/complete
+tripCtrl -> tripSvc: completeTrip(tripId)
+tripSvc -> db: Set status "completed"
+tripSvc -> guideSvc: Set guide availability = true
+tripSvc -> driverSvc: Set driver availability = true
+db --> tripSvc: Updated all
+tripSvc --> tripCtrl: 200 { trip, "Trip completed!" }
+client --> tourist: "Rate your experience"
+
+@enduml
+@startuml
+
+' ===================================================================
+' FLOW 4: Driver Location Polling
+' ===================================================================
+title Flow 4: Driver Location Polling
+
+actor "Driver" as driver
+participant "Driver App" as dapp
+participant "Location Controller" as locCtrl
+participant "Location Store" as locStore
+actor "Tourist" as tourist
+participant "Tourist App" as tapp
+
+== Driver sends location (every 10s) ==
+loop Every 10 seconds (while trip is ONGOING)
+  driver -> dapp: GPS coordinates update
+  dapp -> locCtrl: POST /location/update\n{ driverId, tripId, lat, lng }
+  locCtrl -> locStore: setLocation(driverId, tripId, lat, lng)
+  note over locStore: Overwrites previous location\nfor this driver
+  locStore --> locCtrl: 200 { stored }
+  locCtrl --> dapp: "Location updated"
+  dapp --> driver: GPS sent ✓
+end
+
+== Tourist polls driver location ==
+loop Every 5 seconds (while trip is ONGOING)
+  tourist -> tapp: Open tracking page
+  tapp -> locCtrl: GET /location/driver/:driverId
+  locCtrl -> locStore: getLocation(driverId)
+  
+  alt Location found & recent (< 30s)
+    locStore --> locCtrl: { driverId, tripId, lat, lng, timestamp }
+    locCtrl --> tapp: 200 { location }
+    tapp -> tapp: Update map marker position
+    tapp -> tapp: Update ETA calculation
+    tapp --> tourist: Driver location on map
+  else No recent location
+    locStore --> locCtrl: null
+    locCtrl --> tapp: 404 { "No location data" }
+    tapp --> tourist: "Waiting for driver location..."
+  end
+  
+  note over tapp: MapsLib.drawRoute(\n  start: tourist position,\n  end: driver position\n)
+end
+
+== Location History (for trip review) ==
+tapp -> locCtrl: GET /location/trip/:tripId
+locCtrl -> locStore: getTripLocations(tripId)
+locStore --> locCtrl: [location points array]
+locCtrl --> tapp: 200 { locations: [...] }
+tapp -> tapp: Draw route polyline on map
+
+@enduml
+@startuml
+
+' ===================================================================
+' FLOW 5: Review Creation
+' ===================================================================
+title Flow 5: Review Creation
+
+actor "Tourist" as tourist
+participant "Browser/App" as client
+participant "Review Controller" as revCtrl
+participant "Review Service" as revSvc
+participant "Trip Service" as tripSvc
+participant "Place Service" as placeSvc
+participant "Guide Service" as guideSvc
+participant "Driver Service" as driverSvc
+participant "Notification Service" as notifSvc
+database "MongoDB" as db
+
+== Create Review ==
+tourist -> client: Select trip, target (place/guide/driver),\nrating, comment
+client -> revCtrl: POST /review/create_review\n{ tripId, placeId?, guideId?,\n  driverId?, rating, comment }
+revCtrl -> revSvc: createReview(dto)
+
+revSvc -> tripSvc: Find trip by ID
+tripSvc --> revSvc: Trip details
+
+alt Trip not found
+  revSvc --> revCtrl: 404 { "Trip not found" }
+  revCtrl --> client: Error
+else Trip not completed
+  revSvc --> revCtrl: 400 { "Trip not completed yet" }
+  revCtrl --> client: "You can only review completed trips"
+else Tourist doesn't own trip
+  revSvc --> revCtrl: 400 { "Not your trip" }
+  revCtrl --> client: Error
+else Trip is valid & completed
+  revSvc -> db: Check existing review (tripId + touristId + target)
+  db --> revSvc: null (no duplicate)
+  
+  revSvc -> db: Create review document
+  db --> revSvc: New review
+  
+  opt Place review
+    revSvc -> placeSvc: Get all place reviews
+    placeSvc --> revSvc: reviews[]
+    revSvc -> placeSvc: Update averageRating & reviewsCount
+    placeSvc --> revSvc: Updated place
+  end
+  
+  opt Guide review
+    revSvc -> guideSvc: Get all guide reviews
+    guideSvc --> revSvc: reviews[]
+    revSvc -> guideSvc: Update average rating
+    revSvc -> notifSvc: Notify guide
+  end
+  
+  opt Driver review
+    revSvc -> driverSvc: Get all driver reviews
+    driverSvc --> revSvc: reviews[]
+    revSvc -> driverSvc: Update average rating
+    revSvc -> notifSvc: Notify driver
+  end
+  
+  revSvc --> revCtrl: 201 { review }
+  revCtrl --> client: "Review submitted!"
+  client --> tourist: Show confirmation
+end
+
+@enduml
+@startuml
+
+' ===================================================================
+' FLOW 6: Admin Operations
+' ===================================================================
+title Flow 6: Admin Operations
+
+actor "Admin" as admin
+participant "Browser/App" as client
+participant "Admin Controller" as adCtrl
+participant "Admin Service" as adSvc
+participant "Auth Service" as authSvc
+participant "Notification" as notifSvc
+database "MongoDB" as db
+
+== Admin Login ==
+admin -> client: Enter admin credentials
+client -> adCtrl: POST /auth/signin { email, password }
+adCtrl -> authSvc: signIn(email, password)
+authSvc --> adCtrl: 200 { tokens, user.role = "admin" }
+adCtrl --> client: Admin dashboard
+
+== View Dashboard ==
+admin -> client: Open dashboard
+client -> adCtrl: GET /admin/dashboard
+adCtrl -> adSvc: getDashboard()
+adSvc -> db: Aggregate: total users, trips,\nreviews, places, guides, drivers
+db --> adSvc: Statistics
+adSvc --> adCtrl: 200 { stats }
+adCtrl --> client: Dashboard data
+client --> admin: Display charts & metrics
+
+== Approve Guide ==
+admin -> client: Navigate to Pending Guides
+client -> adCtrl: GET /admin/pending-guides
+adCtrl -> adSvc: getPendingGuides()
+adSvc -> db: Find guides where\nverificationStatus = "pending"
+db --> adSvc: [pending guides]
+adSvc --> adCtrl: 200 { guides }
+adCtrl --> client: List of pending guides
+client --> admin: Review guide profile & certificate
+
+admin -> client: Click "Approve"
+client -> adCtrl: PATCH /admin/guide/:id/verification-status\n{ status: "approved" }
+adCtrl -> adSvc: verifyGuide(guideId, "approved")
+adSvc -> db: Update guide verificationStatus
+adSvc -> db: Update user role = "guide"
+db --> adSvc: Updated
+adSvc -> notifSvc: Notify guide (approved)
+adSvc --> adCtrl: 200 { "Guide approved" }
+adCtrl --> client: Success
+client --> admin: Guide approved ✓
+
+== Manage Users ==
+admin -> client: Navigate to User Management
+client -> adCtrl: GET /admin/users
+adCtrl -> adSvc: getAllUsers()
+adSvc -> db: Find all users (paginated)
+db --> adSvc: [users]
+adSvc --> adCtrl: 200 { users, pagination }
+adCtrl --> client: User list
+client --> admin: View/block/delete users
+
+admin -> client: Click "Block User"
+client -> adCtrl: PATCH /admin/:id/status\n{ status: "blocked" }
+adCtrl -> adSvc: blockUser(userId)
+adSvc -> db: Update user status = "blocked"
+db --> adSvc: Updated
+adSvc --> adCtrl: 200 { "User blocked" }
+adCtrl --> client: Confirmation
+client --> admin: User blocked
+
+== View Reports ==
+admin -> client: Navigate to Reports
+client -> adCtrl: GET /admin/reports
+adCtrl -> adSvc: getReports()
+adSvc -> db: Aggregate system reports
+db --> adSvc: reportData
+adSvc --> adCtrl: 200 { reports }
+adCtrl --> client: Reports data
+client --> admin: System reports
+
+@enduml
+@startuml
+
+' ===================================================================
+' FLOW 7: Notification & Lost Item
+' ===================================================================
+title Flow 7: Notification & Lost Item
+
+actor "User" as user
+actor "Admin" as admin
+participant "App" as client
+participant "Notification Controller" as notifCtrl
+participant "Notification Service" as notifSvc
+participant "Socket.IO" as socket
+participant "Lost Item Controller" as lostCtrl
+participant "Lost Item Service" as lostSvc
+database "MongoDB" as db
+
+== Real-Time Notification ==
+note over socket: Socket.IO connection established\non app load with userId
+
+notifSvc -> socket: emit("notification", { title, message, type })
+socket --> client: Push notification
+client -> client: Show toast/badge
+client --> user: Visual notification
+
+== Create Lost Item ==
+user -> client: Navigate to "Report Lost Item"
+client -> lostCtrl: POST /lost_item/create_lost_item\n{ tripId, title, description, image? }
+lostCtrl -> lostSvc: createLostItem(dto)
+lostSvc -> db: Create lost item (status: "pending")
+db --> lostSvc: New lost item
+lostSvc -> notifSvc: Notify admin & trip driver
+notifSvc --> lostSvc: Notifications sent
+lostSvc --> lostCtrl: 201 { lostItem }
+lostCtrl --> client: "Lost item reported!"
+client --> user: Confirmation
+
+== Update Lost Item Status ==
+user -> client: Click "Report Found"
+client -> lostCtrl: PATCH /lost_item/:id/report-found
+lostCtrl -> lostSvc: reportFound(itemId)
+lostSvc -> db: Update status = "found"
+db --> lostSvc: Updated
+lostSvc -> notifSvc: Notify involved parties
+lostSvc --> lostCtrl: 200 { "Item found!" }
+lostCtrl --> client: Success
+client --> user: "Item marked as found"
+
+== Admin Notification Management ==
+admin -> client: View all notifications
+client -> notifCtrl: GET /notifications/notifications
+notifCtrl -> notifSvc: getNotifications(adminId)
+notifSvc -> db: Find notifications (sorted by date)
+db --> notifSvc: [notifications]
+notifSvc --> notifCtrl: 200 { notifications }
+notifCtrl --> client: List
+client --> admin: Notification list
+
+admin -> client: Click "Mark All Read"
+client -> notifCtrl: PATCH /notifications/mark-all-as-read
+notifCtrl -> notifSvc: markAllAsRead(adminId)
+notifSvc -> db: Update isRead = true for all
+db --> notifSvc: Updated
+notifSvc --> notifCtrl: 200 { "All marked read" }
+notifCtrl --> client: Confirmation
+client --> admin: All notifications cleared
+
+@enduml

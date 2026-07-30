@@ -1,0 +1,37 @@
+<app-loading *ngIf="loading"></app-loading>
+
+<div class="detail-page" *ngIf="!loading && place">
+  <div class="header">
+    <div>
+      <h1>{{ place.name }}</h1>
+      <p class="meta">{{ place.city }} &middot; {{ place.category }}</p>
+    </div>
+    <div class="actions" *ngIf="authService.hasRole(roleEnum.ADMIN, roleEnum.TOURIST)">
+      <a mat-stroked-button [routerLink]="['/places', place._id, 'edit']"><mat-icon>edit</mat-icon> Edit</a>
+      <button mat-stroked-button color="warn" (click)="deletePlace()"><mat-icon>delete</mat-icon> Delete</button>
+    </div>
+  </div>
+
+  <mat-card>
+    <p>{{ place.description }}</p>
+    <p *ngIf="place.price"><strong>Estimated price:</strong> {{ place.price }} EGP</p>
+    <div class="rating" *ngIf="place.averageRating">
+      <mat-icon>star</mat-icon> {{ place.averageRating.toFixed(1) }} average ({{ place.reviewsCount }} reviews)
+    </div>
+  </mat-card>
+
+  <app-map
+    *ngIf="place.coordinates?.coordinates"
+    mode="view"
+    [lat]="place.coordinates.coordinates[1]"
+    [lng]="place.coordinates.coordinates[0]"
+    height="240px">
+  </app-map>
+
+  <h2>Reviews</h2>
+  <mat-card *ngFor="let review of reviews" class="review-card">
+    <p>{{ review.comment }}</p>
+    <div class="rating"><mat-icon>star</mat-icon> {{ review.rating }}/5</div>
+  </mat-card>
+  <p *ngIf="reviews.length === 0" class="empty">No reviews yet for this place.</p>
+</div>

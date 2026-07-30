@@ -1,0 +1,191 @@
+@startuml
+!define ENTITY(entityName, entityAlias) entity entityAlias [[$entityName]]
+
+skinparam entity {
+  BackgroundColor #F3E5F5
+  BorderColor #6A1B9A
+}
+skinparam cardinality {
+  BackgroundColor #E8F5E9
+  FontColor #1B5E20
+}
+
+entity "User" as user {
+  *_id: ObjectId [PK]
+  --
+  name: String [REQ]
+  email: String [REQ, UNIQUE]
+  password: String [REQ]
+  phone: String [REQ, UNIQUE]
+  profileImage.secure_url: String [OPT]
+  profileImage.public_id: String [OPT]
+  gender: String [REQ]
+  role: String [REQ, enum: tourist/driver/guide/admin]
+  status: String [DEF: active]
+  isVerified: Boolean [DEF: false]
+  savedPlaces: ObjectId[] [OPT, FK -> Place]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+entity "Driver" as driver {
+  *_id: ObjectId [PK]
+  --
+  userId: ObjectId [REQ, FK -> User]
+  licenseNumber: String [REQ, UNIQUE]
+  rating: Number [DEF: 0]
+  availability: Boolean [DEF: true]
+  currentLocation.type: String [OPT, DEF: Point]
+  currentLocation.coordinates: Number[] [OPT]
+  verificationStatus: String [DEF: pending]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+entity "Guide" as guide {
+  *_id: ObjectId [PK]
+  --
+  userId: ObjectId [REQ, FK -> User]
+  languages: String[] [REQ]
+  experience: Number [DEF: 0]
+  certificate.secure_url: String [OPT]
+  certificate.public_id: String [OPT]
+  rating: Number [DEF: 0]
+  availability: Boolean [DEF: true]
+  verificationStatus: String [DEF: pending]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+entity "Vehicle" as vehicle {
+  *_id: ObjectId [PK]
+  --
+  driverId: ObjectId [REQ, FK -> Driver]
+  brand: String [REQ]
+  vehicleModel: String [REQ]
+  capacity: Number [REQ, min: 1]
+  plateNumber: String [REQ, UNIQUE]
+  carImages[].secure_url: String [REQ]
+  carImages[].public_id: String [REQ]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+entity "Place" as place {
+  *_id: ObjectId [PK]
+  --
+  osmId: Number [REQ, UNIQUE]
+  name: String [REQ]
+  city: String [REQ]
+  category: String [REQ]
+  description: String [OPT, DEF: ""]
+  coordinates.type: String [DEF: Point]
+  coordinates.coordinates: Number[] [REQ]
+  price: Number [OPT, DEF: 0]
+  averageRating: Number [DEF: 0]
+  reviewsCount: Number [DEF: 0]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+entity "Trip" as trip {
+  *_id: ObjectId [PK]
+  --
+  touristId: ObjectId [REQ, FK -> User]
+  places: ObjectId[] [REQ, FK -> Place]
+  guideId: ObjectId [OPT, FK -> Guide]
+  driverId: ObjectId [OPT, FK -> Driver]
+  vehicleId: ObjectId [OPT, FK -> Vehicle]
+  startDate: Date [REQ]
+  endDate: Date [REQ]
+  peopleCount: Number [REQ, min: 1]
+  price: Number [REQ, min: 0]
+  status: String [DEF: pending]
+  routePath: Number[][] [OPT]
+  sharedTripId: ObjectId [OPT, FK -> Trip]
+  isPaid: Boolean [DEF: false]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+entity "Review" as review {
+  *_id: ObjectId [PK]
+  --
+  tripId: ObjectId [REQ, FK -> Trip]
+  touristId: ObjectId [REQ, FK -> User]
+  driverId: ObjectId [OPT, FK -> Driver]
+  guideId: ObjectId [OPT, FK -> Guide]
+  placeId: ObjectId [OPT, FK -> Place]
+  rating: Number [REQ, 1-5]
+  comment: String [OPT, DEF: ""]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+entity "Vote" as vote {
+  *_id: ObjectId [PK]
+  --
+  tripId: ObjectId [REQ, FK -> Trip]
+  placeId: ObjectId [REQ, FK -> Place]
+  userId: ObjectId [REQ, FK -> User]
+  voteValue: String [REQ, enum: like/dislike]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+  --
+  UNIQUE(tripId + placeId + userId)
+}
+
+entity "LostItem" as lostitem {
+  *_id: ObjectId [PK]
+  --
+  tripId: ObjectId [REQ, FK -> Trip]
+  userId: ObjectId [REQ, FK -> User]
+  title: String [REQ]
+  description: String [REQ]
+  image.secure_url: String [OPT]
+  image.public_id: String [OPT]
+  status: String [DEF: pending]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+entity "Notification" as notification {
+  *_id: ObjectId [PK]
+  --
+  senderId: ObjectId [OPT, FK -> User]
+  receiverId: ObjectId [REQ, FK -> User]
+  title: String [REQ]
+  message: String [REQ]
+  isRead: Boolean [DEF: false]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+entity "BlackListedToken" as blacklistedtoken {
+  *_id: ObjectId [PK]
+  --
+  tokenId: String [REQ, UNIQUE]
+  expiresAt: Date [REQ]
+  created_at: Date [AUTO]
+  updated_at: Date [AUTO]
+}
+
+user ||--o{ driver : "userId"
+user ||--o{ guide : "userId"
+driver ||--o{ vehicle : "driverId"
+user ||--o{ trip : "touristId"
+trip ||--o{ trip : "sharedTripId"
+trip ||--o{ review : "tripId"
+trip ||--o{ vote : "tripId"
+trip ||--o{ lostitem : "tripId"
+place ||--o{ review : "placeId"
+place ||--o{ vote : "placeId"
+user ||--o{ vote : "userId"
+user ||--o{ lostitem : "userId"
+guide ||--o{ review : "guideId"
+driver ||--o{ review : "driverId"
+user ||--o{ notification : "receiverId"
+user ||--o{ notification : "senderId"
+user }o--o{ place : "savedPlaces"
+
+@enduml

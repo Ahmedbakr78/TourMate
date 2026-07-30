@@ -1,0 +1,159 @@
+@startuml
+skinparam class {
+  BackgroundColor #FFF9C4
+  BorderColor #F57F17
+  FontSize 12
+}
+skinparam arrow {
+  Color #1565C0
+}
+
+class User {
+  - _id: ObjectId
+  - name: String
+  - email: String
+  - password: String
+  - phone: String
+  - profileImage: Object
+  - gender: GenderEnum
+  - role: RoleEnum
+  - status: StatusUserEnum
+  - otps: Otp[]
+  - isVerified: Boolean
+  - savedPlaces: ObjectId[]
+  + timestamps
+}
+
+class Driver {
+  - _id: ObjectId
+  - userId: ObjectId
+  - licenseNumber: String
+  - rating: Number
+  - availability: Boolean
+  - currentLocation: GeoJSON
+  - verificationStatus: VerificationStatusEnum
+  + timestamps
+}
+
+class Guide {
+  - _id: ObjectId
+  - userId: ObjectId
+  - languages: String[]
+  - experience: Number
+  - certificate: Object
+  - rating: Number
+  - availability: Boolean
+  - verificationStatus: VerificationStatusEnum
+  + timestamps
+}
+
+class Vehicle {
+  - _id: ObjectId
+  - driverId: ObjectId
+  - brand: String
+  - vehicleModel: String
+  - capacity: Number
+  - plateNumber: String
+  - carImages: Image[]
+  + timestamps
+}
+
+class Place {
+  - _id: ObjectId
+  - osmId: Number
+  - name: String
+  - city: String
+  - category: String
+  - description: String
+  - coordinates: GeoJSON
+  - price: Number
+  - averageRating: Number
+  - reviewsCount: Number
+  + timestamps
+}
+
+class Trip {
+  - _id: ObjectId
+  - touristId: ObjectId
+  - places: ObjectId[]
+  - guideId: ObjectId
+  - driverId: ObjectId
+  - vehicleId: ObjectId
+  - startDate: Date
+  - endDate: Date
+  - peopleCount: Number
+  - price: Number
+  - status: TripStatusEnum
+  - routePath: Number[][]
+  - sharedTripId: ObjectId
+  - isPaid: Boolean
+  + timestamps
+}
+
+class Review {
+  - _id: ObjectId
+  - tripId: ObjectId
+  - touristId: ObjectId
+  - driverId: ObjectId
+  - guideId: ObjectId
+  - placeId: ObjectId
+  - rating: Number
+  - comment: String
+  + timestamps
+}
+
+class Vote {
+  - _id: ObjectId
+  - tripId: ObjectId
+  - placeId: ObjectId
+  - userId: ObjectId
+  - voteValue: VoteValueEnum
+  + timestamps
+}
+
+class LostItem {
+  - _id: ObjectId
+  - tripId: ObjectId
+  - userId: ObjectId
+  - title: String
+  - description: String
+  - image: Object
+  - status: LostItemStatusEnum
+  + timestamps
+}
+
+class Notification {
+  - _id: ObjectId
+  - senderId: ObjectId
+  - receiverId: ObjectId
+  - title: String
+  - message: String
+  - isRead: Boolean
+  + timestamps
+}
+
+class BlackListedToken {
+  - _id: ObjectId
+  - tokenId: String
+  - expiresAt: Date
+  + timestamps
+}
+
+User "1" <-- "1" Driver : userId >
+User "1" <-- "1" Guide : userId >
+Driver "1" <-- "0..*" Vehicle : driverId >
+User "1" <-- "0..*" Trip : touristId >
+Trip "1" <-- "0..*" Trip : sharedTripId >
+Trip "1" <-- "0..*" Review : tripId >
+Trip "1" <-- "0..*" Vote : tripId >
+Trip "1" <-- "0..*" LostItem : tripId >
+Place "1" <-- "0..*" Review : placeId >
+Place "1" <-- "0..*" Vote : placeId >
+User "1" <-- "0..*" Vote : userId >
+User "1" <-- "0..*" LostItem : userId >
+Guide "1" <-- "0..*" Review : guideId >
+Driver "1" <-- "0..*" Review : driverId >
+User "1" <-- "0..*" Notification : receiverId >
+User "1" --> "0..*" Notification : senderId >
+
+@enduml

@@ -1,0 +1,428 @@
+@startuml
+skinparam activity {
+  BackgroundColor #FAFAFA
+  BorderColor #1565C0
+  FontSize 11
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #F57F17
+}
+
+' ===================================================================
+' ACTIVITY 1: Complete Authentication Flow
+' ===================================================================
+title Activity 1: Complete Authentication Flow
+
+start
+:[User opens app];
+repeat
+  :Enter email & password;
+  :POST /auth/signin;
+  if (User exists?) then (yes)
+    :bcrypt.compare(password);
+    if (Password matches?) then (yes)
+      if (isVerified?) then (yes)
+        if (status = active?) then (yes)
+          :Generate accessToken (15min);
+          :Generate refreshToken (7 days);
+          :Login successful;
+          :Redirect to home;
+          stop
+        else (blocked)
+          :Return 401 - "Account blocked";
+          stop
+        endif
+      else (not verified)
+        :Return 400 - "Confirm email first";
+        :Redirect to OTP page;
+        :User enters OTP;
+        :POST /auth/confirm_email;
+        if (OTP valid?) then (yes)
+          :Set isVerified = true;
+          :Login successful;
+          stop
+        else (invalid)
+          if (Resend OTP?) then (yes)
+            :POST /auth/send_otp_again;
+            :New OTP sent to email;
+            note right: Max 3 resend attempts
+            repeat
+            repeat while (OTP not entered correctly?) is (retry)
+            :Go back to login;
+          else (no)
+            stop
+          endif
+        endif
+      endif
+    else (wrong password)
+      :Return 400 - "Invalid credentials";
+    endif
+  else (not found)
+    :Return 400 - "Invalid credentials";
+    [:Show "Forgot Password?" link];
+    if (User clicks "Forgot Password"?) then (yes)
+      :Enter email;
+      :POST /auth/forgot_password;
+      if (Email exists?) then (yes)
+        :Generate reset OTP;
+        :Send to email;
+        :User enters OTP + new password;
+        :POST /auth/verify_reset_code;
+        if (OTP valid?) then (yes)
+          :PATCH /auth/reset_password;
+          :Password updated;
+          :Redirect to login;
+          stop
+        else (invalid)
+          :Return error;
+          stop
+        endif
+      else (no)
+        :Return "Email not found";
+        stop
+      endif
+    else (no)
+      stop
+    endif
+  endif
+  :Retry login?;
+repeat while (Retry login?) is (yes)
+stop
+
+@enduml
+@startuml
+
+' ===================================================================
+' ACTIVITY 2: Trip Lifecycle (Full)
+' ===================================================================
+title Activity 2: Trip Lifecycle (Full)
+
+start
+:Tourist browses places;\nSaves favorites;
+:Selects places for trip;
+:Enters dates & people count;
+:POST /trip/create_trip;
+:Calculate base price\n(places × days × people);
+if (Assign guide?) then (yes)
+  :Search available guides;
+  if (Guide approved?) then (yes)
+    :Add guideFee to price;
+  else (no)
+    :Show error - guide not available;
+    stop
+  endif
+else (no)
+  :Proceed without guide;
+endif
+
+if (Assign driver?) then (yes)
+  :Search available drivers;
+  if (Driver approved?) then (yes)
+    if (Assign vehicle?) then (yes)
+      :Search driver vehicles;
+      if (Vehicle capacity fits?) then (yes)
+        :Add driverFee + fuel to price;
+      else (no)
+        :Show error - capacity exceeded;
+        stop
+      endif
+    else (no)
+      :Proceed with driver;\nNo vehicle selected;
+    endif
+  else (no)
+    :Show error - driver not available;
+    stop
+  endif
+else (no)
+  :Proceed without driver;
+endif
+
+:Calculate final price;
+:Create trip (status: PENDING);
+
+if (Share trip with others?) then (yes)
+  :PATCH /trip/:id/share;
+  :Generate share link;
+  :Others can join (max capacity);
+  if (New people join?) then (yes)
+    :Recalculate split cost;
+    :Update peopleCount;
+  else (no)
+  endif
+else (no)
+endif
+
+if (Trip ready to start?) then (yes)
+  :PATCH /trip/:id/start;
+  if (Guide & Driver & Vehicle\nall assigned?) then (yes)
+    :Set status: ONGOING;
+    :Driver starts location polling (every 10s);
+    :Tourist can track driver location (every 5s);
+  else (no)
+    :Show error:\n"Assign resources first";
+    stop
+  endif
+else (no)
+  :Trip stays PENDING;
+  stop
+endif
+
+if (Tourist cancels?) then (yes)
+  :PATCH /trip/:id/cancel;
+  :Set status: CANCELLED;
+  :Restore guide/driver/vehicle availability;
+  :Refund if paid;
+  stop
+else (no)
+  :Trip continues;
+endif
+
+:Driver completes route;
+:PATCH /trip/:id/complete;
+:Set status: COMPLETED;
+:Set guide availability = true;
+:Set driver availability = true;
+
+:Create Reviews for places, guide, or driver;
+stop
+
+@enduml
+@startuml
+
+' ===================================================================
+' ACTIVITY 3: Place & Review Management
+' ===================================================================
+title Activity 3: Place & Review Management
+
+start
+repeat
+  :User opens Places page;
+  if (Search by name?) then (yes)
+    :GET /place/search?query=;
+  else (no)
+  endif
+  if (Filter by city?) then (yes)
+    :GET /place/filter?city=;
+  else (no)
+  endif
+  if (Filter by category?) then (yes)
+    :GET /place/filter?category=;
+  else (no)
+  endif
+  :GET /place/all;
+  :Display place cards with\nname, city, rating, image;
+  :User clicks on a place;
+  :GET /place/get/:id;
+  :Show place details:\nphotos, description, reviews, map;
+  if (User wants to save?) then (yes)
+    :POST /place/save/:id;
+    :Place added to favorites;
+  else (no)
+  endif
+  if (Any reviews?) then (yes)
+    :Display review list with ratings;
+  else (no)
+    :Show "No reviews yet";
+  endif
+
+  :User can navigate to\nReview Creation;
+  if (User writes a review?) then (yes)
+    :Select target:\nthis place / guide / driver;
+    if (Trip completed?) then (yes)
+      :Enter rating (1-5);
+      :Write comment (optional);
+      :POST /review/create_review;
+      :Check for duplicate review;
+      if (Duplicate?) then (yes)
+        :Return error - "Already reviewed";
+      else (no)
+        :Create review document;
+        :Update target's averageRating;
+        :Notify target about review;
+        :Show confirmation;
+      endif
+    else (no)
+      :Return error:\n"Complete trip first";
+    endif
+  else (no)
+  endif
+  :Continue browsing?;
+repeat while (Continue browsing?) is (yes)
+stop
+
+@enduml
+@startuml
+
+' ===================================================================
+' ACTIVITY 4: Admin Operations
+' ===================================================================
+title Activity 4: Admin Operations
+
+start
+:Admin logs in with admin credentials;
+if (Role = admin?) then (yes)
+  :Access admin dashboard;
+else (no)
+  :Return 403 - "Unauthorized";
+  stop
+endif
+
+:GET /admin/dashboard;
+:Display dashboard:\ntotal users, trips, reviews,\nplaces, guides, drivers;
+:Display system statistics:
+
+if (Manage Users?) then (yes)
+  :GET /admin/users;
+  :Show all users (paginated);
+  if (Search user?) then (yes)
+    :Filter by name/email/role;
+  else (no)
+  endif
+  if (Select user?) then (yes)
+    if (Block/Unblock?) then (yes)
+      :PATCH /admin/:id/status;
+      :User status updated;
+    else (no)
+    endif
+    if (Change role?) then (yes)
+      :PATCH /admin/:id/role;
+      :Role updated;
+    else (no)
+    endif
+    if (Delete user?) then (yes)
+      :DELETE /admin/:id/delete;
+      :User & related data removed;
+    else (no)
+    endif
+  else (no)
+  endif
+else (no)
+endif
+
+if (Verify Providers?) then (yes)
+  if (View Pending Guides?) then (yes)
+    :GET /admin/pending-guides;
+    :Show guides list + certificates;
+    if (Approve?) then (yes)
+      :PATCH /admin/guide/:id/verification-status;
+      :Set guide status = "approved";
+      :Notify guide;
+    else (Reject)
+      :PATCH /admin/guide/:id/verification-status;
+      :Set guide status = "rejected";
+      :Notify guide;
+    endif
+  else (no)
+  endif
+  if (View Pending Drivers?) then (yes)
+    :GET /admin/pending-drivers;
+    :Show drivers list + licenses;
+    if (Approve?) then (yes)
+      :PATCH /admin/driver/:id/verification-status;
+      :Set driver status = "approved";
+      :Notify driver;
+    else (Reject)
+      :PATCH /admin/driver/:id/verification-status;
+      :Set driver status = "rejected";
+      :Notify driver;
+    endif
+  else (no)
+  endif
+else (no)
+endif
+
+if (Manage Trips?) then (yes)
+  if (Assign resources to trip?) then (yes)
+    :PATCH /admin/trip/:id/assign-resources;
+    :Assign guide/driver/vehicle;
+  else (no)
+  endif
+  if (Update trip status?) then (yes)
+    :PATCH /admin/trip/:id/status;
+    :Status updated;
+  else (no)
+  endif
+  if (Delete trip?) then (yes)
+    :DELETE /admin/trip/:id/delete;
+    :Trip & related data removed;
+  else (no)
+  endif
+else (no)
+endif
+
+if (View Reports?) then (yes)
+  :GET /admin/reports;
+  :Display system reports;
+else (no)
+endif
+
+:Admin logs out;
+stop
+
+@enduml
+@startuml
+
+' ===================================================================
+' ACTIVITY 5: Notification & Lost Item
+' ===================================================================
+title Activity 5: Notification & Lost Item
+
+start
+:User receives notification\n(in-app + socket + optional email);
+:Display notification badge count;
+:User opens notification center;
+:GET /notifications/notifications;
+:Show notification list (sorted newest first);
+if (Mark one as read?) then (yes)
+  :PATCH /notifications/:id/mark-as-read;
+  :Update badge count;
+else (no)
+endif
+if (Mark all as read?) then (yes)
+  :PATCH /notifications/mark-all-as-read;
+  :Clear badge count;
+else (no)
+endif
+if (Delete notification?) then (yes)
+  :DELETE /notifications/:id/delete;
+else (no)
+endif
+if (Delete all?) then (yes)
+  :DELETE /notifications/delete-all;
+else (no)
+endif
+
+:User discovers item lost during trip;
+:Navigate to "Lost & Found";
+:POST /lost_item/create_lost_item;
+:Lost item reported (status: "pending");
+:Notify trip driver & admin via socket;
+:Driver searches vehicle;
+
+if (Item found?) then (yes)
+  :PATCH /lost_item/:id/report-found;
+  :Set status = "found";
+  :Notify user to claim item;
+  if (User claims item?) then (yes)
+    :PATCH /lost_item/:id/close;
+    :Set status = "closed";
+    stop
+  else (no)
+    :Item stays "found";
+  endif
+else (no)
+  if (Reopen search?) then (yes)
+    :PATCH /lost_item/:id/reopen;
+    :Set status = "pending" again;
+    :Repeat search process;
+  else (no)
+    :Item stays in "pending" or "closed";
+  endif
+endif
+
+:User can view lost items history;
+:GET /lost_item/my_lost_items;
+stop
+
+@enduml

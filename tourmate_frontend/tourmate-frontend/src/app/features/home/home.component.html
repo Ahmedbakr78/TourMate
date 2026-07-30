@@ -1,0 +1,45 @@
+<section class="hero">
+  <div class="hero-copy">
+    <p class="eyebrow">Egypt, on your terms</p>
+    <h1>Your route through Egypt, drawn by you.</h1>
+    <p class="lede">
+      Pick the places, choose a verified guide and driver, split the cost with friends -
+      TourMate turns a trip into a route you build one stop at a time.
+    </p>
+    <div class="cta">
+      <a mat-flat-button color="accent" routerLink="/trips/builder">Build a trip</a>
+      <a mat-stroked-button routerLink="/places">Explore places</a>
+    </div>
+  </div>
+
+  <div class="route-signature" aria-hidden="true">
+    <div class="route-line"></div>
+    <div class="waypoint" *ngFor="let stop of routeStops">
+      <span class="dot"><mat-icon>{{ stop.icon }}</mat-icon></span>
+      <span class="label">{{ stop.label }}</span>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <mat-card>
+    <mat-icon>map</mat-icon>
+    <h3>Custom trip planning</h3>
+    <p>Pick places, order your itinerary, and get a cost estimate instantly.</p>
+  </mat-card>
+  <mat-card>
+    <mat-icon>groups</mat-icon>
+    <h3>Group &amp; shared trips</h3>
+    <p>Vote with friends and split the cost of a shared trip.</p>
+  </mat-card>
+  <mat-card>
+    <mat-icon>verified_user</mat-icon>
+    <h3>Verified guides &amp; drivers</h3>
+    <p>Every guide and driver is verified by our admin team before accepting trips.</p>
+  </mat-card>
+  <mat-card>
+    <mat-icon>find_in_page</mat-icon>
+    <h3>Lost &amp; Found</h3>
+    <p>Report and track lost items tied to your trip.</p>
+  </mat-card>
+</section>

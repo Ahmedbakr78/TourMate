@@ -1,0 +1,291 @@
+@startuml
+!define RECTANGLE_DB cloud
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam actor {
+  BackgroundColor #E8F5E9
+  BorderColor #2E7D32
+  FontStyle bold
+  FontSize 14
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+  FontSize 12
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #F57F17
+}
+
+title TourMate — Complete Use Case Diagram
+
+actor "Tourist" as T
+actor "Admin" as A
+actor "Driver" as D
+actor "Guide" as G
+
+rectangle "TourMate System" {
+
+  ' ─── Authentication & Account ───
+  package "Authentication & Account" as auth_pkg {
+    usecase UC1 as "Register Account"
+    usecase UC2 as "Login"
+    usecase UC3 as "Verify Email\n(via OTP)"
+    usecase UC4 as "Resend OTP"
+    usecase UC5 as "Forgot Password"
+    usecase UC6 as "Reset Password"
+    usecase UC7 as "Change Password"
+    usecase UC8 as "Refresh Token"
+    usecase UC9 as "Logout"
+    usecase UC10 as "View Profile"
+    usecase UC11 as "Update Profile"
+    usecase UC12 as "Upload Profile Image"
+    usecase UC13 as "Delete Account"
+  }
+
+  ' ─── Place Management ───
+  package "Places" as place_pkg {
+    usecase UC14 as "Search Places"
+    usecase UC15 as "Filter Places\n(by city/category)"
+    usecase UC16 as "View Place Details"
+    usecase UC17 as "Save Place\n(to favorites)"
+    usecase UC18 as "Unsave Place"
+    usecase UC19 as "View Nearby Places"
+    usecase UC20 as "View Popular Places"
+    usecase UC21 as "Create Place\n(Admin)"
+    usecase UC22 as "Update Place\n(Admin)"
+    usecase UC23 as "Delete Place\n(Admin)"
+  }
+
+  ' ─── Trip Management ───
+  package "Trips" as trip_pkg {
+    usecase UC24 as "Create Trip\n(select places, dates,\npeople count)"
+    usecase UC25 as "View My Trips"
+    usecase UC26 as "View Trip Details"
+    usecase UC27 as "Update Trip"
+    usecase UC28 as "Cancel Trip"
+    usecase UC29 as "Duplicate Trip"
+    usecase UC30 as "Share Trip"
+    usecase UC31 as "Join Shared Trip"
+    usecase UC32 as "Calculate Trip Price"
+    usecase UC33 as "Assign Guide\n(to trip)"
+    usecase UC34 as "Assign Driver\n(to trip)"
+    usecase UC35 as "Assign Vehicle\n(to trip)"
+    usecase UC36 as "Start Trip"
+    usecase UC37 as "Complete Trip"
+    usecase UC38 as "View Trip Route"
+  }
+
+  ' ─── Voting ───
+  package "Voting" as vote_pkg {
+    usecase UC39 as "Vote on Place\n(within a trip)"
+    usecase UC40 as "Update Vote"
+    usecase UC41 as "View Place Votes"
+    usecase UC42 as "View My Votes"
+  }
+
+  ' ─── Reviews ───
+  package "Reviews" as review_pkg {
+    usecase UC43 as "Create Review\n(places/guide/driver)"
+    usecase UC44 as "Update Review"
+    usecase UC45 as "Delete Review"
+    usecase UC46 as "View Reviews"
+    usecase UC47 as "View My Reviews"
+  }
+
+  ' ─── Guide Management ───
+  package "Guides" as guide_pkg {
+    usecase UC48 as "Create Guide Profile"
+    usecase UC49 as "Update Guide Profile"
+    usecase UC50 as "Delete Guide Profile"
+    usecase UC51 as "View Guide Details"
+    usecase UC52 as "List All Guides"
+    usecase UC53 as "Search Guides"
+    usecase UC54 as "Update Availability\n(Guide)"
+    usecase UC55 as "Upload Certificate"
+    usecase UC56 as "Delete Certificate"
+  }
+
+  ' ─── Driver Management ───
+  package "Drivers" as driver_pkg {
+    usecase UC57 as "Create Driver Profile"
+    usecase UC58 as "Update Driver Profile"
+    usecase UC59 as "Delete Driver Profile"
+    usecase UC60 as "View Driver Details"
+    usecase UC61 as "List All Drivers"
+    usecase UC62 as "Search Drivers"
+    usecase UC63 as "Update Availability\n(Driver)"
+  }
+
+  ' ─── Vehicle Management ───
+  package "Vehicles" as veh_pkg {
+    usecase UC64 as "Create Vehicle"
+    usecase UC65 as "Update Vehicle"
+    usecase UC66 as "Delete Vehicle"
+    usecase UC67 as "View Vehicle Details"
+    usecase UC68 as "List All Vehicles"
+    usecase UC69 as "Search Vehicles"
+    usecase UC70 as "View Driver Vehicles"
+    usecase UC71 as "Upload Vehicle Images"
+    usecase UC72 as "Delete Vehicle Image"
+  }
+
+  ' ─── Location Tracking ───
+  package "Location" as loc_pkg {
+    usecase UC73 as "Update Location\n(Driver polling)"
+    usecase UC74 as "Track Driver Location\n(Tourist)"
+  }
+
+  ' ─── Notifications ───
+  package "Notifications" as notif_pkg {
+    usecase UC75 as "View Notifications"
+    usecase UC76 as "Mark Notification\nAs Read"
+    usecase UC77 as "Mark All As Read"
+    usecase UC78 as "Delete Notification"
+    usecase UC79 as "Delete All\nNotifications"
+  }
+
+  ' ─── Lost Items ───
+  package "Lost & Found" as lost_pkg {
+    usecase UC80 as "Report Lost Item"
+    usecase UC81 as "Update Lost Item"
+    usecase UC82 as "Update Lost Item\nStatus"
+    usecase UC83 as "View My Lost Items"
+    usecase UC84 as "View Trip Lost Items"
+    usecase UC85 as "Report Found"
+    usecase UC86 as "Close Lost Item"
+    usecase UC87 as "Reopen Lost Item"
+  }
+
+  ' ─── Admin ───
+  package "Admin" as admin_pkg {
+    usecase UC88 as "View Dashboard\n(statistics)"
+    usecase UC89 as "View System Statistics"
+    usecase UC90 as "Manage Users\n(list/block/delete)"
+    usecase UC91 as "Approve/Reject\nGuide"
+    usecase UC92 as "Approve/Reject\nDriver"
+    usecase UC93 as "View Pending Guides"
+    usecase UC94 as "View Pending Drivers"
+    usecase UC95 as "Change User Role"
+    usecase UC96 as "Delete Trip\n(Admin)"
+    usecase UC97 as "View Reports"
+    usecase UC98 as "Assign Resources\n(to trips)"
+  }
+}
+
+' ─── Actor → Use Case relationships ───
+
+' Tourist
+T --> UC1 : Register
+T --> UC2 : Login
+T --> UC3 : Verify email
+T --> UC4 : Resend OTP
+T --> UC5 : Forgot password
+T --> UC6 : Reset password
+T --> UC7 : Change password
+T --> UC8 : Refresh token
+T --> UC9 : Logout
+T --> UC10 : View profile
+T --> UC11 : Update profile
+T --> UC12 : Upload image
+T --> UC13 : Delete account
+T --> UC14 : Search places
+T --> UC15 : Filter places
+T --> UC16 : View place
+T --> UC17 : Save place
+T --> UC18 : Unsave place
+T --> UC19 : Nearby places
+T --> UC20 : Popular places
+T --> UC24 : Create trip
+T --> UC25 : My trips
+T --> UC26 : Trip details
+T --> UC27 : Update trip
+T --> UC28 : Cancel trip
+T --> UC29 : Duplicate trip
+T --> UC30 : Share trip
+T --> UC31 : Join shared
+T --> UC32 : Calculate price
+T --> UC38 : Trip route
+T --> UC39 : Vote
+T --> UC40 : Update vote
+T --> UC41 : Place votes
+T --> UC42 : My votes
+T --> UC43 : Create review
+T --> UC44 : Update review
+T --> UC45 : Delete review
+T --> UC46 : View reviews
+T --> UC47 : My reviews
+T --> UC74 : Track driver
+T --> UC75 : View notif
+T --> UC76 : Mark read
+T --> UC77 : Mark all read
+T --> UC78 : Delete notif
+T --> UC79 : Delete all
+T --> UC80 : Report lost
+T --> UC81 : Update lost
+T --> UC82 : Update status
+T --> UC83 : My lost items
+T --> UC85 : Report found
+T --> UC86 : Close item
+T --> UC87 : Reopen item
+
+' Admin
+A --> UC2 : Login
+A --> UC10 : View profile
+A --> UC88 : Dashboard
+A --> UC89 : System stats
+A --> UC90 : Manage users
+A --> UC91 : Approve guide
+A --> UC92 : Approve driver
+A --> UC93 : Pending guides
+A --> UC94 : Pending drivers
+A --> UC95 : Change role
+A --> UC96 : Delete trip
+A --> UC97 : Reports
+A --> UC98 : Assign resources
+A --> UC21 : Create place
+A --> UC22 : Update place
+A --> UC23 : Delete place
+A --> UC33 : Assign guide
+A --> UC34 : Assign driver
+A --> UC35 : Assign vehicle
+
+' Driver
+D --> UC2 : Login
+D --> UC10 : View profile
+D --> UC57 : Create driver
+D --> UC58 : Update driver
+D --> UC60 : View driver
+D --> UC63 : Update avail.
+D --> UC73 : Update location
+D --> UC34 : Assign to trip
+D --> UC75 : View notif
+
+' Guide
+G --> UC2 : Login
+G --> UC10 : View profile
+G --> UC48 : Create guide
+G --> UC49 : Update guide
+G --> UC51 : View guide
+G --> UC54 : Update avail.
+G --> UC55 : Upload cert
+G --> UC56 : Delete cert
+G --> UC33 : Assign to trip
+G --> UC75 : View notif
+
+' ─── Include/Extend relationships ───
+UC2 .> UC3 : <<include>>\nif not verified
+UC1 .> UC3 : <<include>>\nverify after signup
+UC5 .> UC6 : <<include>>
+UC24 .> UC32 : <<include>>\ncalc price
+UC24 .> UC39 : <<include>>\nvoting phase
+UC30 .> UC31 : <<extend>>
+UC36 .> UC73 : <<include>>\ntracking starts
+UC91 .> UC93 : <<extend>>\nview pending
+UC92 .> UC94 : <<extend>>\nview pending
+UC43 .> UC46 : <<include>>
+UC80 .> UC85 : <<extend>>\nreport found
+
+@enduml

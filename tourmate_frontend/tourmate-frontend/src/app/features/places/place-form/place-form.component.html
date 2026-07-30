@@ -1,0 +1,55 @@
+<app-loading *ngIf="loading"></app-loading>
+
+<div class="form-page" *ngIf="!loading">
+  <mat-card>
+    <h1>{{ isEdit ? 'Edit place' : 'Add a new place' }}</h1>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>OpenStreetMap ID (osmId)</mat-label>
+        <input matInput type="number" formControlName="osmId" required>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Name</mat-label>
+        <input matInput formControlName="name" required>
+      </mat-form-field>
+
+      <div class="row">
+        <mat-form-field appearance="outline">
+          <mat-label>City</mat-label>
+          <input matInput formControlName="city" required>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Category</mat-label>
+          <input matInput formControlName="category" placeholder="museum, monument, attraction..." required>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description</mat-label>
+        <textarea matInput formControlName="description" rows="3"></textarea>
+      </mat-form-field>
+
+      <label class="field-label">Location on the map</label>
+      <app-map
+        mode="picker"
+        [lat]="pickedLat"
+        [lng]="pickedLng"
+        height="280px"
+        (locationSelected)="onLocationPicked($event)">
+      </app-map>
+      <p class="picked-coords" *ngIf="pickedLat != null && pickedLng != null">
+        Selected: {{ pickedLat!.toFixed(5) }}, {{ pickedLng!.toFixed(5) }}
+      </p>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Estimated price (EGP)</mat-label>
+        <input matInput type="number" formControlName="price">
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" type="submit" [disabled]="form.invalid || saving">
+        {{ saving ? 'Saving...' : (isEdit ? 'Save changes' : 'Create place') }}
+      </button>
+    </form>
+  </mat-card>
+</div>

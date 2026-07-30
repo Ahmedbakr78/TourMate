@@ -1,0 +1,203 @@
+@startuml
+skinparam sequence {
+  BackgroundColor #FAFAFA
+  ActorBorderColor #2E7D32
+  LifeLineBorderColor #1565C0
+  LifeLineBackgroundColor #E3F2FD
+  ParticipantBorderColor #1565C0
+  ParticipantBackgroundColor #E3F2FD
+}
+
+' ==============================
+' A) User Registration Flow
+' ==============================
+title User Registration Flow
+
+actor "Tourist" as tourist
+participant "Client" as client
+participant "Auth Controller" as authCtrl
+participant "Auth Service" as authSvc
+database "DB" as db
+
+tourist -> client: Fill registration form
+client -> authCtrl: POST /auth/signup\n{name, email, password, phone, gender}
+authCtrl -> authSvc: signUp()
+authSvc -> db: Check if email exists
+db --> authSvc: Result
+alt Email already exists
+  authSvc --> authCtrl: 409 Conflict
+  authCtrl --> client: Error response
+else Email is new
+  authSvc -> authSvc: Hash password\nEncrypt phone\nGenerate OTP
+  authSvc -> db: Create user (isVerified: false)
+  db --> authSvc: New user
+  authSvc -> client: Email OTP sent
+  client --> tourist: Show OTP input form
+  tourist -> client: Enter OTP
+  client -> authCtrl: POST /auth/confirm-email\n{email, otp}
+  authCtrl -> authSvc: confirmEmail()
+  authSvc -> db: Find user by email
+  db --> authSvc: User with OTPs
+  authSvc -> authSvc: Verify OTP hash & expiry
+  alt Invalid or expired OTP
+    authSvc --> authCtrl: 400 Bad Request
+    authCtrl --> client: Error response
+  else Valid OTP
+    authSvc -> db: Update user (isVerified: true)
+    db --> authSvc: Updated user
+    authSvc --> authCtrl: 200 Success
+    authCtrl --> client: Email confirmed
+    client --> tourist: Registration complete
+  end
+end
+
+@enduml
+@startuml
+' ==============================
+' B) Trip Creation Flow
+' ==============================
+title Trip Creation Flow
+
+actor "Tourist" as tourist
+participant "Client" as client
+participant "Trip Controller" as tripCtrl
+participant "Trip Service" as tripSvc
+participant "Place Repo" as placeRepo
+participant "Driver Repo" as driverRepo
+participant "Guide Repo" as guideRepo
+participant "Vehicle Repo" as vehRepo
+participant "Price Service" as priceSvc
+participant "Notification" as notif
+database "DB" as db
+
+tourist -> client: Select places, dates,\npeople, guide/driver/vehicle
+client -> tripCtrl: POST /trip\n{places, startDate, endDate, peopleCount,\nguideId, driverId, vehicleId}
+tripCtrl -> tripSvc: createTrip()
+
+tripSvc -> placeRepo: Validate each place exists
+placeRepo --> tripSvc: Place(s) found
+
+alt Guide assigned
+  tripSvc -> guideRepo: Validate guide available & approved
+  guideRepo --> tripSvc: Guide confirmed
+end
+
+alt Driver assigned
+  tripSvc -> driverRepo: Validate driver available & approved
+  driverRepo --> tripSvc: Driver confirmed
+end
+
+alt Vehicle assigned
+  tripSvc -> vehRepo: Validate vehicle capacity
+  vehRepo --> tripSvc: Vehicle confirmed
+end
+
+tripSvc -> priceSvc: calculateTripPrice()
+priceSvc --> tripSvc: Final price
+
+tripSvc -> db: Create trip (status: PENDING)
+db --> tripSvc: New trip created
+
+alt Guide notified
+  tripSvc -> notif: Send notification & socket event
+end
+alt Driver notified
+  tripSvc -> notif: Send notification & socket event
+end
+
+tripSvc --> tripCtrl: 201 Created
+tripCtrl --> client: Trip created successfully
+client --> tourist: Show trip details
+
+@enduml
+@startuml
+' ==============================
+' C) Driver Location Update (Polling)
+' ==============================
+title Driver Location Update (Polling)
+
+actor "Driver" as driver
+participant "Driver Client" as dc
+participant "Location Controller" as locCtrl
+participant "Location Store" as locStore
+participant "Tourist Client" as tc
+participant "Location Controller" as locCtrl2
+
+loop Every N seconds (e.g. 10s)
+  driver -> dc: GPS coordinates
+  dc -> locCtrl: POST /location/update\n{tripId, lat, lng}
+  locCtrl -> locStore: setLocation(driverId, tripId, lat, lng)
+  locStore --> locCtrl: Stored
+  locCtrl --> dc: 200 Location updated
+end
+
+== Tourist polls driver location ==
+tc -> locCtrl2: GET /location/driver/:driverId
+locCtrl2 -> locStore: getLocation(driverId)
+locStore --> locCtrl2: {lat, lng, tripId, timestamp}
+locCtrl2 --> tc: 200 Driver location
+
+alt Driver stops sending updates
+  note over locStore: Location expires / not found
+  locCtrl2 --> tc: 400 Location not available
+end
+
+@enduml
+@startuml
+' ==============================
+' D) Review Creation Flow
+' ==============================
+title Review Creation Flow
+
+actor "Tourist" as tourist
+participant "Client" as client
+participant "Review Controller" as revCtrl
+participant "Review Service" as revSvc
+participant "Trip Repo" as tripRepo
+participant "Place Repo" as placeRepo
+participant "Review Repo" as revRepo
+participant "Notification" as notif
+database "DB" as db
+
+tourist -> client: Select trip & rating/comment
+client -> revCtrl: POST /review\n{tripId, placeId?, guideId?,\ndriverId?, rating, comment}
+revCtrl -> revSvc: createReview()
+
+revSvc -> tripRepo: Find trip by ID
+tripRepo --> revSvc: Trip details
+
+alt Not tourist's own trip
+  revSvc --> revCtrl: 400 Bad Request
+  revCtrl --> client: Error
+else Trip not completed
+  revSvc --> revCtrl: 400 Bad Request
+  revCtrl --> client: Error
+else Trip is valid
+  revSvc -> revRepo: Check existing review
+  revRepo --> revSvc: Result
+  alt Already reviewed
+    revSvc --> revCtrl: 400 Bad Request
+  else New review
+    revSvc -> db: Create review document
+    db --> revSvc: Review created
+
+    alt Place reviewed
+      revSvc -> revRepo: Get all place reviews
+      revRepo --> revSvc: Reviews[]
+      revSvc -> placeRepo: Update averageRating & reviewsCount
+    end
+
+    alt Guide reviewed
+      revSvc -> notif: Notify guide
+    end
+    alt Driver reviewed
+      revSvc -> notif: Notify driver
+    end
+
+    revSvc --> revCtrl: 201 Created
+    revCtrl --> client: Review submitted
+    client --> tourist: Show confirmation
+  end
+end
+
+@enduml

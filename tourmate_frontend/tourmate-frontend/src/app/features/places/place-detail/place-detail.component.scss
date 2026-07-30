@@ -1,0 +1,36 @@
+.detail-page {
+  padding: 1.5rem;
+  max-width: 800px;
+  margin: 0 auto;
+
+  app-map { display: block; margin-top: 1rem; }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+
+  .meta { color: #777; }
+  .actions { display: flex; gap: 0.5rem; }
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #f9a825;
+  font-weight: 600;
+  margin-top: 0.5rem;
+
+  mat-icon { font-size: 1.1rem; height: 1.1rem; width: 1.1rem; }
+}
+
+.review-card {
+  margin-bottom: 0.75rem;
+}
+
+.empty {
+  color: #888;
+}

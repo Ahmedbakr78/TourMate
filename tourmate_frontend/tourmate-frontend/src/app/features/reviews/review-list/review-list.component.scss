@@ -1,0 +1,49 @@
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 1.5rem 0.5rem;
+}
+
+.filter-chips {
+  padding: 0 1.5rem 1rem;
+}
+
+.table-wrapper {
+  padding: 0 1.5rem;
+  overflow-x: auto;
+}
+
+.reviews-table {
+  width: 100%;
+
+  .mat-column-type { width: 100px; }
+  .mat-column-rating { width: 140px; }
+  .mat-column-actions { width: 80px; text-align: center; }
+}
+
+.stars-cell {
+  letter-spacing: 2px;
+}
+
+.star {
+  font-size: 1.2rem;
+  color: #bbb;
+
+  &.filled {
+    color: #f9a825;
+  }
+}
+
+.comment-cell {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  text-align: center;
+  color: #888;
+  padding: 2rem;
+}

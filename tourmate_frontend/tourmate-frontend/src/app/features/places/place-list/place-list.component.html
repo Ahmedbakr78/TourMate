@@ -1,0 +1,45 @@
+<div class="page-header">
+  <h1>Tourism Places</h1>
+  <a mat-raised-button color="primary" routerLink="/places/new"
+     *ngIf="authService.hasRole(roleEnum.ADMIN, roleEnum.TOURIST)">
+    <mat-icon>add</mat-icon> Add place
+  </a>
+</div>
+
+<div class="filters">
+  <mat-form-field appearance="outline">
+    <mat-label>Filter by city</mat-label>
+    <input matInput [(ngModel)]="cityFilter" (ngModelChange)="onFilterInput()">
+  </mat-form-field>
+  <mat-form-field appearance="outline">
+    <mat-label>Filter by category</mat-label>
+    <input matInput [(ngModel)]="categoryFilter" (ngModelChange)="onFilterInput()">
+  </mat-form-field>
+</div>
+
+<app-loading *ngIf="loading"></app-loading>
+
+<div class="grid" *ngIf="!loading">
+  <mat-card *ngFor="let place of places" class="place-card" [routerLink]="['/places', place._id]">
+    <mat-card-header>
+      <mat-card-title>{{ place.name }}</mat-card-title>
+      <mat-card-subtitle>{{ place.city }} &middot; {{ place.category }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <p>{{ place.description }}</p>
+      <div class="rating" *ngIf="place.averageRating">
+        <mat-icon>star</mat-icon> {{ place.averageRating.toFixed(1) }} ({{ place.reviewsCount }})
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <p *ngIf="places.length === 0" class="empty">No places match your filters.</p>
+</div>
+
+<mat-paginator
+  *ngIf="!loading"
+  [length]="totalDocs"
+  [pageSize]="limit"
+  [pageSizeOptions]="[6, 9, 18]"
+  (page)="onPageChange($event)">
+</mat-paginator>

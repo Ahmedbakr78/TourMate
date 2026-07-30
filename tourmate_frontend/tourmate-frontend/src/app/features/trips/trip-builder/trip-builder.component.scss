@@ -1,0 +1,40 @@
+.builder-page {
+  padding: 1.5rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.builder-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 1.5rem;
+
+  @media (max-width: 800px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.place-chip-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.chip-city {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.hint {
+  margin-top: 0.75rem;
+  font-weight: 600;
+}
+
+app-map {
+  display: block;
+  margin-top: 0.75rem;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}

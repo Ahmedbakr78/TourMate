@@ -1,0 +1,35 @@
+<mat-toolbar color="primary" class="navbar">
+  <a routerLink="/" class="brand">
+    <mat-icon>travel_explore</mat-icon>
+    <span>TourMate</span>
+  </a>
+
+  <span class="spacer"></span>
+
+  <ng-container *ngIf="currentUser; else guestLinks">
+    <a mat-button routerLink="/places">Places</a>
+    <a mat-button routerLink="/trips/my-trips" *ngIf="currentUser.role === roleEnum.TOURIST">My Trips</a>
+    <a mat-button routerLink="/drivers">Drivers</a>
+    <a mat-button routerLink="/guides">Guides</a>
+    <a mat-button routerLink="/lost-item/my-items">Lost &amp; Found</a>
+    <a mat-button routerLink="/admin" *ngIf="currentUser.role === roleEnum.ADMIN">Admin</a>
+
+    <a mat-icon-button routerLink="/notifications" matBadge="{{ unreadCount }}" matBadgeColor="warn" [matBadgeHidden]="unreadCount === 0" matTooltip="Notifications">
+      <mat-icon>notifications</mat-icon>
+    </a>
+
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" matTooltip="{{ currentUser.name }}">
+      <mat-icon>account_circle</mat-icon>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      <a mat-menu-item routerLink="/profile"><mat-icon>person</mat-icon> Profile</a>
+      <button mat-menu-item (click)="logout()"><mat-icon>logout</mat-icon> Logout</button>
+    </mat-menu>
+  </ng-container>
+
+  <ng-template #guestLinks>
+    <a mat-button routerLink="/places">Places</a>
+    <a mat-button routerLink="/auth/login">Login</a>
+    <a mat-raised-button color="accent" routerLink="/auth/signup">Sign up</a>
+  </ng-template>
+</mat-toolbar>

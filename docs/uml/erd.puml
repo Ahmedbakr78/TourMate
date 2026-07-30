@@ -1,0 +1,299 @@
+@startuml
+!define ENTITY(entityName, entityAlias) entity entityAlias [[$entityName]]
+
+skinparam entity {
+  BackgroundColor #F3E5F5
+  BorderColor #6A1B9A
+  FontSize 11
+}
+skinparam cardinality {
+  BackgroundColor #E8F5E9
+  FontColor #1B5E20
+}
+skinparam note {
+  BackgroundColor #FFF8E1
+  BorderColor #F57F17
+}
+
+title TourMate — Complete Entity Relationship Diagram (ERD)
+
+' ═══════════════════════════════════════════════
+' USER — Core entity
+' ═══════════════════════════════════════════════
+entity "User" as user {
+  *_id: ObjectId [PK]
+  --
+  name: String [REQ]
+  email: String [REQ, UNIQUE, INDEXED]
+  password: String [REQ, hash: bcrypt]
+  phone: String [REQ, UNIQUE, encrypted: AES-256-CBC]
+  profileImage.secure_url: String [OPT]
+  profileImage.public_id: String [OPT]
+  gender: String [REQ, enum: male/female]
+  role: String [REQ, enum: tourist/driver/guide/admin, INDEXED]
+  status: String [DEF: active, enum: active/blocked]
+  isVerified: Boolean [DEF: false]
+  savedPlaces: ObjectId[] [OPT, FK → Place]
+  createdAt: Date [AUTO]
+  updatedAt: Date [AUTO]
+}
+
+' ═══════════════════════════════════════════════
+' DRIVER
+' ═══════════════════════════════════════════════
+entity "Driver" as driver {
+  *_id: ObjectId [PK]
+  --
+  userId: ObjectId [REQ, FK → User, UNIQUE]
+  licenseNumber: String [REQ, UNIQUE]
+  rating: Number [DEF: 0, min: 0, max: 5]
+  availability: Boolean [DEF: true, INDEXED]
+  currentLocation.type: String [DEF: Point]
+  currentLocation.coordinates: Number[] [OPT, format: [lng, lat]]
+  verificationStatus: String [DEF: pending, enum: pending/approved/rejected, INDEXED]
+  createdAt: Date [AUTO]
+  updatedAt: Date [AUTO]
+}
+note left of driver::verificationStatus
+  INDEXED for admin
+  pending-guides queries
+end note
+
+' ═══════════════════════════════════════════════
+' GUIDE
+' ═══════════════════════════════════════════════
+entity "Guide" as guide {
+  *_id: ObjectId [PK]
+  --
+  userId: ObjectId [REQ, FK → User, UNIQUE]
+  languages: String[] [REQ]
+  experience: Number [DEF: 0]
+  certificate.secure_url: String [OPT]
+  certificate.public_id: String [OPT]
+  rating: Number [DEF: 0, min: 0, max: 5]
+  availability: Boolean [DEF: true, INDEXED]
+  verificationStatus: String [DEF: pending, enum: pending/approved/rejected, INDEXED]
+  createdAt: Date [AUTO]
+  updatedAt: Date [AUTO]
+}
+
+' ═══════════════════════════════════════════════
+' VEHICLE
+' ═══════════════════════════════════════════════
+entity "Vehicle" as vehicle {
+  *_id: ObjectId [PK]
+  --
+  driverId: ObjectId [REQ, FK → Driver, INDEXED]
+  brand: String [REQ]
+  vehicleModel: String [REQ]
+  capacity: Number [REQ, min: 1]
+  plateNumber: String [REQ, UNIQUE]
+  features: String[] [OPT]
+  carImages[*].secure_url: String [OPT]
+  carImages[*].public_id: String [OPT]
+  createdAt: Date [AUTO]
+  updatedAt: Date [AUTO]
+}
+note right of vehicle::driverId
+  INDEXED for
+  getVehicleByDriver query
+end note
+
+' ═══════════════════════════════════════════════
+' PLACE
+' ═══════════════════════════════════════════════
+entity "Place" as place {
+  *_id: ObjectId [PK]
+  --
+  osmId: Number [REQ, UNIQUE, INDEXED]
+  name: String [REQ, INDEXED: text]
+  city: String [REQ, INDEXED]
+  category: String [REQ, INDEXED]
+  description: String [OPT, DEF: ""]
+  coordinates.type: String [DEF: Point]
+  coordinates.coordinates: Number[] [REQ, 2dsphere INDEXED]
+  price: Number [OPT, DEF: 0]
+  averageRating: Number [DEF: 0, min: 0, max: 5]
+  reviewsCount: Number [DEF: 0]
+  createdAt: Date [AUTO]
+  updatedAt: Date [AUTO]
+}
+note right of place::coordinates
+  2dsphere index for
+  geospatial "nearby" queries
+end note
+
+' ═══════════════════════════════════════════════
+' TRIP
+' ═══════════════════════════════════════════════
+entity "Trip" as trip {
+  *_id: ObjectId [PK]
+  --
+  touristId: ObjectId [REQ, FK → User, INDEXED]
+  places: ObjectId[] [REQ, FK → Place]
+  guideId: ObjectId [OPT, FK → Guide]
+  driverId: ObjectId [OPT, FK → Driver]
+  vehicleId: ObjectId [OPT, FK → Vehicle]
+  startDate: Date [REQ]
+  endDate: Date [REQ]
+  peopleCount: Number [REQ, min: 1]
+  price: Number [REQ, min: 0]
+  status: String [DEF: pending, enum: draft/pending/confirmed/ongoing/completed/cancelled, INDEXED]
+  routePath: Number[][] [OPT]
+  sharedTripId: ObjectId [OPT, FK → Trip]
+  isPaid: Boolean [DEF: false]
+  createdAt: Date [AUTO]
+  updatedAt: Date [AUTO]
+}
+note right of trip::status
+  INDEXED for
+  trip status queries
+end note
+
+' ═══════════════════════════════════════════════
+' VOTE
+' ═══════════════════════════════════════════════
+entity "Vote" as vote {
+  *_id: ObjectId [PK]
+  --
+  tripId: ObjectId [REQ, FK → Trip, INDEXED]
+  placeId: ObjectId [REQ, FK → Place]
+  userId: ObjectId [REQ, FK → User]
+  voteValue: String [REQ, enum: like/dislike]
+  createdAt: Date [AUTO]
+  updatedAt: Date [AUTO]
+  --
+  UNIQUE(tripId + placeId + userId)
+}
+
+' ═══════════════════════════════════════════════
+' REVIEW
+' ═══════════════════════════════════════════════
+entity "Review" as review {
+  *_id: ObjectId [PK]
+  --
+  tripId: ObjectId [REQ, FK → Trip, INDEXED]
+  touristId: ObjectId [REQ, FK → User]
+  driverId: ObjectId [OPT, FK → Driver]
+  guideId: ObjectId [OPT, FK → Guide]
+  placeId: ObjectId [OPT, FK → Place]
+  rating: Number [REQ, min: 1, max: 5]
+  comment: String [OPT, DEF: ""]
+  createdAt: Date [AUTO]
+  updatedAt: Date [AUTO]
+  --
+  UNIQUE(tripId + (placeId XOR guideId XOR driverId))
+}
+note right of review::tripId
+  INDEXED for
+  trip reviews query
+end note
+
+' ═══════════════════════════════════════════════
+' NOTIFICATION
+' ═══════════════════════════════════════════════
+entity "Notification" as notification {
+  *_id: ObjectId [PK]
+  --
+  senderId: ObjectId [OPT, FK → User]
+  receiverId: ObjectId [REQ, FK → User, INDEXED]
+  title: String [REQ]
+  message: String [REQ]
+  type: String [OPT, enum: booking/review/lost_item/verification]
+  relatedId: ObjectId [OPT]
+  isRead: Boolean [DEF: false, INDEXED]
+  createdAt: Date [AUTO, INDEXED]
+  updatedAt: Date [AUTO]
+}
+note right of notification::receiverId
+  Compound index:
+  (receiverId + isRead + createdAt)
+  for notification queries
+end note
+
+' ═══════════════════════════════════════════════
+' LOST ITEM
+' ═══════════════════════════════════════════════
+entity "LostItem" as lostitem {
+  *_id: ObjectId [PK]
+  --
+  tripId: ObjectId [REQ, FK → Trip, INDEXED]
+  userId: ObjectId [REQ, FK → User, INDEXED]
+  title: String [REQ]
+  description: String [REQ]
+  image.secure_url: String [OPT]
+  image.public_id: String [OPT]
+  status: String [DEF: pending, enum: pending/found/closed, INDEXED]
+  createdAt: Date [AUTO]
+  updatedAt: Date [AUTO]
+}
+
+' ═══════════════════════════════════════════════
+' BLACKLISTED TOKEN
+' ═══════════════════════════════════════════════
+entity "BlackListedToken" as blacklistedtoken {
+  *_id: ObjectId [PK]
+  --
+  tokenId: String [REQ, UNIQUE, INDEXED]
+  expiresAt: Date [REQ, INDEXED: TTL]
+  createdAt: Date [AUTO]
+}
+note right of blacklistedtoken::expiresAt
+  TTL index: auto-delete
+  expired tokens after 7 days
+end note
+
+' ═══════════════════════════════════════════════
+' RELATIONSHIPS
+' ═══════════════════════════════════════════════
+
+' User → Profiles (1:1)
+user ||--o| driver : "userId"
+user ||--o| guide : "userId"
+
+' User → Trips (1:N)
+user ||--o{ trip : "touristId (FK)"
+
+' User → Votes (1:N)
+user ||--o{ vote : "userId (FK)"
+
+' User → Lost Items (1:N)
+user ||--o{ lostitem : "userId (FK)"
+
+' User → Notifications (1:N) as sender
+user ||--o{ notification : "senderId (FK)"
+
+' User → Notifications (1:N) as receiver
+user ||--o{ notification : "receiverId (FK)"
+
+' Driver → Vehicles (1:N)
+driver ||--o{ vehicle : "driverId (FK)"
+
+' Driver → Reviews (1:N)
+driver ||--o{ review : "driverId (FK)"
+
+' Guide → Reviews (1:N)
+guide ||--o{ review : "guideId (FK)"
+
+' Place → Reviews (1:N)
+place ||--o{ review : "placeId (FK)"
+
+' Place → Votes (1:N)
+place ||--o{ vote : "placeId (FK)"
+
+' Trip → Reviews (1:N)
+trip ||--o{ review : "tripId (FK)"
+
+' Trip → Votes (1:N)
+trip ||--o{ vote : "tripId (FK)"
+
+' Trip → Lost Items (1:N)
+trip ||--o{ lostitem : "tripId (FK)"
+
+' Trip → Self (1:N) for Shared Trip
+trip ||--o{ trip : "sharedTripId"
+
+' User → Place (M:N) for savedPlaces
+user }o--o{ place : "savedPlaces"
+
+@enduml

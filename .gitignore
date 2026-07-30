@@ -1,33 +1,36 @@
-# Dependencies
+# Node
 node_modules/
-client/node_modules/
-server/node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
 
-# Build output
+# Angular build output
 dist/
-client/dist/
-out/
+tmp/
+out-tsc/
+bazel-out/
+.angular/cache/
 
-# Env & secrets
+# Environment / secrets
 .env
-.env.local
-*.key
-*.pem
-secrets.json
+*.env.local
 
-# Uploads (keep folder, ignore contents)
-server/uploads/*
-!server/uploads/.gitkeep
+# IDE
+.vscode/
+.idea/
+*.swp
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
 
 # Logs
 *.log
-npm-debug.log*
+/tmp/
 
-# Editor / OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+# Uploads
+uploads/*
 
 # Coverage
 coverage/

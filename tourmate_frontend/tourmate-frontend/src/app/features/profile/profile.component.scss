@@ -1,0 +1,67 @@
+.profile-page {
+  max-width: 600px;
+  margin: 1.5rem auto;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.avatar-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+
+  .avatar {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .avatar-placeholder {
+    font-size: 96px;
+    height: 96px;
+    width: 96px;
+    color: #ccc;
+  }
+
+  .avatar-actions {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .role-badge {
+    text-transform: capitalize;
+    color: #666;
+    font-size: 0.85rem;
+  }
+}
+
+.full-width { width: 100%; margin-bottom: 0.5rem; }
+
+.role-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.danger-zone {
+  border: 1px solid #f44336;
+}
+
+.availability-row {
+  margin: 0.75rem 0;
+}
+
+.certificate-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.empty {
+  color: #888;
+}

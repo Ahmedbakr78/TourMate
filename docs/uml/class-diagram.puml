@@ -1,0 +1,400 @@
+@startuml
+skinparam class {
+  BackgroundColor #FFF9C4
+  BorderColor #F57F17
+  FontSize 11
+}
+skinparam arrow {
+  Color #1565C0
+  FontSize 10
+}
+skinparam package {
+  BackgroundColor #F5F5F5
+  BorderColor #9E9E9E
+}
+
+title TourMate — Complete Class Diagram
+
+package "Authentication & Security" as auth_pkg {
+  class BlackListedToken {
+    - _id: ObjectId
+    - tokenId: String
+    - expiresAt: Date
+    + timestamps
+  }
+}
+
+package "User Management" as user_pkg {
+  class User {
+    - _id: ObjectId
+    - name: String
+    - email: String
+    - password: String
+    - phone: String
+    - profileImage: ImageObject
+    - gender: GenderEnum
+    - role: RoleEnum
+    - status: StatusUserEnum
+    - otps: Otp[]
+    - isVerified: Boolean
+    - savedPlaces: ObjectId[]
+    + timestamps
+    + signUp()
+    + signIn()
+    + confirmEmail()
+    + forgotPassword()
+    + resetPassword()
+    + changePassword()
+    + refreshToken()
+    + logout()
+    + getProfile()
+    + updateProfile()
+    + uploadProfileImage()
+    + deleteProfileImage()
+    + deleteAccount()
+  }
+}
+
+package "Provider Management" as provider_pkg {
+  class Guide {
+    - _id: ObjectId
+    - userId: ObjectId
+    - languages: String[]
+    - experience: Number
+    - certificate: ImageObject
+    - rating: Number
+    - availability: Boolean
+    - verificationStatus: VerificationStatusEnum
+    + timestamps
+    + createGuide()
+    + updateGuide()
+    + deleteGuide()
+    + getGuide()
+    + getAllGuides()
+    + searchGuides()
+    + updateAvailability()
+    + uploadCertificate()
+    + deleteCertificate()
+    + calculateRating()
+  }
+
+  class Driver {
+    - _id: ObjectId
+    - userId: ObjectId
+    - licenseNumber: String
+    - rating: Number
+    - availability: Boolean
+    - currentLocation: GeoJSON
+    - verificationStatus: VerificationStatusEnum
+    + timestamps
+    + createDriver()
+    + updateDriver()
+    + deleteDriver()
+    + getDriver()
+    + getAllDrivers()
+    + searchDrivers()
+    + updateAvailability()
+    + updateLocation()
+    + calculateRating()
+  }
+
+  class Vehicle {
+    - _id: ObjectId
+    - driverId: ObjectId
+    - brand: String
+    - vehicleModel: String
+    - capacity: Number
+    - plateNumber: String
+    - carImages: ImageObject[]
+    + timestamps
+    + createVehicle()
+    + updateVehicle()
+    + deleteVehicle()
+    + getVehicle()
+    + getAllVehicles()
+    + searchVehicles()
+    + getDriverVehicles()
+    + uploadImages()
+    + deleteImage()
+  }
+}
+
+package "Place & Review" as place_pkg {
+  class Place {
+    - _id: ObjectId
+    - osmId: Number
+    - name: String
+    - city: String
+    - category: String
+    - description: String
+    - coordinates: GeoJSON
+    - price: Number
+    - averageRating: Number
+    - reviewsCount: Number
+    + timestamps
+    + createPlace()
+    + updatePlace()
+    + deletePlace()
+    + getPlace()
+    + getAllPlaces()
+    + searchPlaces()
+    + filterPlaces()
+    + getNearbyPlaces()
+    + getPopularPlaces()
+    + savePlace()
+    + unsavePlace()
+  }
+
+  class Review {
+    - _id: ObjectId
+    - tripId: ObjectId
+    - touristId: ObjectId
+    - driverId: ObjectId
+    - guideId: ObjectId
+    - placeId: ObjectId
+    - rating: Number
+    - comment: String
+    + timestamps
+    + createReview()
+    + updateReview()
+    + deleteReview()
+    + getReview()
+    + getAllReviews()
+    + getTripReviews()
+    + getPlaceReviews()
+    + getGuideReviews()
+    + getDriverReviews()
+    + getMyReviews()
+  }
+}
+
+package "Trip & Vote" as trip_pkg {
+  class Trip {
+    - _id: ObjectId
+    - touristId: ObjectId
+    - places: ObjectId[]
+    - guideId: ObjectId
+    - driverId: ObjectId
+    - vehicleId: ObjectId
+    - startDate: Date
+    - endDate: Date
+    - peopleCount: Number
+    - price: Number
+    - status: TripStatusEnum
+    - routePath: Number[][]
+    - sharedTripId: ObjectId
+    - isPaid: Boolean
+    + timestamps
+    + createTrip()
+    + updateTrip()
+    + deleteTrip()
+    + getTrip()
+    + getAllTrips()
+    + getMyTrips()
+    + getSharedTrips()
+    + assignGuide()
+    + assignDriver()
+    + assignVehicle()
+    + startTrip()
+    + completeTrip()
+    + cancelTrip()
+    + shareTrip()
+    + joinSharedTrip()
+    + duplicateTrip()
+    + calculatePrice()
+    + getRoute()
+  }
+
+  class Vote {
+    - _id: ObjectId
+    - tripId: ObjectId
+    - placeId: ObjectId
+    - userId: ObjectId
+    - voteValue: VoteValueEnum
+    + timestamps
+    + createVote()
+    + updateVote()
+    + deleteVote()
+    + getPlaceVotes()
+    + getUserVotes()
+  }
+}
+
+package "Notification & Lost Item" as notif_pkg {
+  class Notification {
+    - _id: ObjectId
+    - senderId: ObjectId
+    - receiverId: ObjectId
+    - title: String
+    - message: String
+    - isRead: Boolean
+    + timestamps
+    + createNotification()
+    + getNotifications()
+    + getNotification()
+    + getUnreadCount()
+    + markAsRead()
+    + markAllAsRead()
+    + deleteNotification()
+    + deleteAllNotifications()
+  }
+
+  class LostItem {
+    - _id: ObjectId
+    - tripId: ObjectId
+    - userId: ObjectId
+    - title: String
+    - description: String
+    - image: ImageObject
+    - status: LostItemStatusEnum
+    + timestamps
+    + createLostItem()
+    + updateLostItem()
+    + updateStatus()
+    + deleteLostItem()
+    + getLostItem()
+    + getTripLostItems()
+    + getMyLostItems()
+    + reportFound()
+    + closeLostItem()
+    + reopenLostItem()
+  }
+}
+
+package "Location Tracking" as loc_pkg {
+  class LocationStore {
+    + {static} store: Map<String, LocationData>
+    + setLocation(driverId, tripId, lat, lng)
+    + getLocation(driverId): LocationData
+    + getTripLocations(tripId): LocationData[]
+    + removeDriver(driverId)
+  }
+
+  class LocationData {
+    - driverId: ObjectId
+    - tripId: ObjectId
+    - latitude: Number
+    - longitude: Number
+    - timestamp: Date
+  }
+}
+
+package "Enums" as enum_pkg {
+  enum RoleEnum {
+    tourist
+    driver
+    guide
+    admin
+  }
+
+  enum GenderEnum {
+    male
+    female
+  }
+
+  enum StatusUserEnum {
+    active
+    blocked
+  }
+
+  enum VerificationStatusEnum {
+    pending
+    approved
+    rejected
+  }
+
+  enum TripStatusEnum {
+    draft
+    pending
+    confirmed
+    ongoing
+    completed
+    cancelled
+  }
+
+  enum VoteValueEnum {
+    like
+    dislike
+  }
+
+  enum LostItemStatusEnum {
+    pending
+    found
+    closed
+  }
+}
+
+package "Supporting Classes" as support_pkg {
+  class ImageObject {
+    - secure_url: String
+    - public_id: String
+  }
+
+  class GeoJSON {
+    - type: String
+    - coordinates: Number[]
+  }
+
+  class Otp {
+    - value: String
+    - expiredAt: Date
+    - otpType: String
+  }
+}
+
+' ─── Relationships ───
+
+' User → others
+User "1" --> "1" Driver : userId
+User "1" --> "1" Guide : userId
+User "1" --> "1" Driver : userId
+User "1" --> "0..*" Trip : touristId
+User "1" --> "0..*" Notification : receiverId
+User "1" --> "0..*" Notification : senderId
+User "1" --> "0..*" Vote : userId
+User "1" --> "0..*" LostItem : userId
+User "1" --> "0..*" Review : touristId
+
+' Driver
+Driver "1" --> "0..*" Vehicle : driverId
+Driver "1" --> "0..*" Review : driverId
+Driver "1" --> "0..*" Trip : driverId
+
+' Guide
+Guide "1" --> "0..*" Review : guideId
+Guide "1" --> "0..*" Trip : guideId
+
+' Vehicle
+Vehicle "1" --> "0..*" Trip : vehicleId
+
+' Place
+Place "1" --> "0..*" Review : placeId
+Place "1" --> "0..*" Vote : placeId
+Place "1" --> "0..*" User : savedPlaces
+
+' Trip
+Trip "1" --> "0..*" Review : tripId
+Trip "1" --> "0..*" Vote : tripId
+Trip "1" --> "0..*" LostItem : tripId
+Trip "1" --> "0..*" Trip : sharedTripId
+
+' Enums usage
+User --> RoleEnum
+User --> GenderEnum
+User --> StatusUserEnum
+Driver --> VerificationStatusEnum
+Guide --> VerificationStatusEnum
+Trip --> TripStatusEnum
+Vote --> VoteValueEnum
+LostItem --> LostItemStatusEnum
+
+' Supporting
+User --> ImageObject : profileImage
+Guide --> ImageObject : certificate
+Vehicle --> ImageObject : carImages
+LostItem --> ImageObject : image
+Driver --> GeoJSON : currentLocation
+Place --> GeoJSON : coordinates
+User --> Otp : otps
+
+@enduml

@@ -1,0 +1,94 @@
+@startuml
+' ==============================
+' A) Trip Lifecycle
+' ==============================
+title Trip Lifecycle
+
+start
+:Draft (initial state);
+note right: Tourist selects places,\ndates, people count
+stop
+
+start
+:PENDING;
+note right: Trip created, awaiting\nresources & confirmation
+
+:Assign Driver/Guide/Vehicle;
+if (Resources assigned?) then (yes)
+  :CONFIRMED;
+  note right: Trip is shared\nor ready to start
+else (no)
+  :Stay PENDING;
+  note right: Admin can assign\nor tourist can cancel
+endif
+
+if (Trip shared?) then (yes)
+  :Others can join via\nJoin Shared Trip;
+endif
+
+:Start Trip;
+if (Guide, Driver & Vehicle\nassigned?) then (yes)
+  :ONGOING;
+  note right: Driver updates\nlocation via polling
+else (no)
+  :Cannot start - missing resources;
+  note right: Throw error
+  stop
+endif
+
+:Complete Trip;
+:COMPLETED;
+note right: Guide & Driver\navailability set to true
+
+:Tourist can leave Reviews;
+:Rating/Review for places,\nguide, or driver;
+
+stop
+
+start
+:Any status\n(Draft/Pending/Confirmed/Ongoing);
+:CANCELLED;
+note right: Guide & Driver\navailability restored
+stop
+
+@enduml
+@startuml
+' ==============================
+' B) User Authentication Flow
+' ==============================
+title User Authentication Flow
+
+start
+:User opens app;
+:Enter email & password;
+
+:POST /auth/signin;
+if (User exists?) then (yes)
+  :Check password hash;
+  if (Password matches?) then (yes)
+    :Check isVerified;
+    if (Verified?) then (yes)
+      :Check user status;
+      if (Status is ACTIVE?) then (yes)
+        :Generate access token + refresh token;
+        :Return tokens to client;
+        :User is authenticated;
+        stop
+      else (BLOCKED)
+        :Return 401 - Account blocked;
+        stop
+      endif
+    else (No)
+      :Return 400 - Please confirm email first;
+      stop
+    endif
+  else (No)
+    :Return 400 - Invalid email or password;
+    stop
+  endif
+else (No)
+  :Return 400 - Invalid email or password;
+  stop
+endif
+
+@enduml
