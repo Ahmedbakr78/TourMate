@@ -29,6 +29,9 @@ Thumbs.db
 *.log
 /tmp/
 
+# Zip archives
+*.zip
+
 # Uploads
 uploads/*
 
