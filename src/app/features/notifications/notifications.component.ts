@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { NotificationService } from 'src/app/core/services/notification.service';
-import { INotification } from 'src/app/core/models/notification.model';
+import { NotificationService } from '../../core/services/notification.service';
+import { INotification } from '../../core/models/notification.model';
 
 @Component({
   selector: 'app-notifications',

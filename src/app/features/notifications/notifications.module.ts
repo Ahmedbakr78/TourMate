@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { SharedModule } from 'src/app/shared/shared.module';
-import { AuthGuard } from 'src/app/core/guards/auth.guard';
+import { SharedModule } from '../../../../../shared/src/app/shared/shared.module';
+import { AuthGuard } from '../../../../../shared/src/app/core/guards/auth.guard';
 import { NotificationsComponent } from './notifications.component';
 
 const routes: Routes = [

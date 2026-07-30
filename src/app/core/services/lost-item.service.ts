@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from 'src/environments/environment';
+import { environment } from '../../../../../shared/src/environments/environment';
 import { ISuccessResponse } from '../models/response.model';
 import { ILostItem } from '../models/lost-item.model';
 import { LostItemStatusEnum } from '../models/enums';

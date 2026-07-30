@@ -1,6 +1,6 @@
 import { LostItemStatusEnum } from './enums';
 import { ITrip } from './trip.model';
-import { IUser } from './user.model';
+import { IUser } from '../../../../../shared/src/app/core/models/user.model';
 
 export interface ILostItemImage {
   secure_url: string;

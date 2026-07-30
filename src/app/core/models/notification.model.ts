@@ -1,4 +1,4 @@
-import { IUser } from './user.model';
+import { IUser } from '../../../../../shared/src/app/core/models/user.model';
 
 export interface INotification {
   _id: string;

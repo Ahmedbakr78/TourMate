@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { LostItemService } from 'src/app/core/services/lost-item.service';
-import { ILostItem } from 'src/app/core/models/lost-item.model';
+import { LostItemService } from '../../../core/services/lost-item.service';
+import { ILostItem } from '../../../core/models/lost-item.model';
 
 @Component({
   selector: 'app-lost-item-list',

@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Socket, io } from 'socket.io-client';
 import { Subject } from 'rxjs';
-import { environment } from 'src/environments/environment';
-import { TokenStorageService } from './token-storage.service';
+import { environment } from '../../../../../shared/src/environments/environment';
+import { TokenStorageService } from '../../../../../shared/src/app/core/services/token-storage.service';
 
 /**
  * Connects to the backend's Socket.IO server (now initialized server-side via
